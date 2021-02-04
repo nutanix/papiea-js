@@ -94,7 +94,8 @@ export class PapieaErrorResponseImpl implements PapieaResponse {
 
                 return new PapieaErrorResponseImpl(409, `Conflicting Entity: ${metadata.uuid}. Existing entity has version ${metadata.spec_version}`, PapieaError.ConflictingEntity)
             default:
-                console.log(`Default handle got error: ${err.message}`)
+                console.log(`Default handle got error: ${err.message}.`)
+                console.log(err) // Shlomi.v: DEBUG: Need a better way to do this
                 return new PapieaErrorResponseImpl(500, err.message, PapieaError.ServerError)
         }
     }

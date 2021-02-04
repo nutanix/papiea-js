@@ -1,5 +1,5 @@
 // [[file:~/work/papiea-js/Papiea-design.org::*/src/intentful_engine/task_manager_interface.ts][/src/intentful_engine/task_manager_interface.ts:1]]
-import { calculateBackoff, timeout } from "../utils/utils"
+import { timeout } from "../utils/utils"
 import { Spec_DB } from "../databases/spec_db_interface"
 import { Status_DB } from "../databases/status_db_interface"
 import { create_entry, Backoff, EntryReference, Watchlist, Delay } from "./watchlist"
@@ -33,8 +33,9 @@ export class DiffResolver {
     private batchSize: number;
     private static MAXIMUM_BACKOFF = 100
     private entropyFn: (diff_delay?: number) => number
+    private calculateBackoffFn: (retries?: number, maximumBackoff?: number, entropy?: number, kind_retry_exponent?: number, kind_name?: string) => number
 
-    constructor(watchlist: Watchlist, watchlistDb: Watchlist_DB, specDb: Spec_DB, statusDb: Status_DB, providerDb: Provider_DB, differ: Differ, intentfulContext: IntentfulContext, logger: Logger, batchSize: number, entropyFn: (diff_delay?: number) => number) {
+    constructor(watchlist: Watchlist, watchlistDb: Watchlist_DB, specDb: Spec_DB, statusDb: Status_DB, providerDb: Provider_DB, differ: Differ, intentfulContext: IntentfulContext, logger: Logger, batchSize: number, entropyFn: (diff_delay?: number) => number, calculateBackoffFn: (retries?: number, maximumBackoff?: number, entropy?: number) => number) {
         this.specDb = specDb
         this.statusDb = statusDb
         this.watchlistDb = watchlistDb
@@ -45,6 +46,7 @@ export class DiffResolver {
         this.logger = logger
         this.batchSize = batchSize
         this.entropyFn = entropyFn
+        this.calculateBackoffFn = calculateBackoffFn
     }
 
     public async run(delay: number) {
@@ -83,7 +85,7 @@ export class DiffResolver {
         } else {
             return {
                 delay: {
-                    delay_seconds: calculateBackoff(retries, DiffResolver.MAXIMUM_BACKOFF, this.entropyFn(kind.diff_delay)),
+                    delay_seconds: this.calculateBackoffFn(retries, DiffResolver.MAXIMUM_BACKOFF, this.entropyFn(kind.diff_delay), kind.diff_retry_exponent, kind.name),
                     delay_set_time: new Date()
                 },
                 retries

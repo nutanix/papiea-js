@@ -4,6 +4,7 @@ import { UserAuthInfo } from "../../auth/authn";
 import { Spec_DB } from "../../databases/spec_db_interface";
 import { Watchlist_DB } from "../../databases/watchlist_db_interface";
 import { create_entry } from "../../intentful_engine/watchlist";
+import {RequestContext, spanOperation} from "papiea-backend-utils"
 
 export abstract class StatusUpdateStrategy {
     statusDb: Status_DB
@@ -14,11 +15,11 @@ export abstract class StatusUpdateStrategy {
         this.statusDb = statusDb
     }
 
-    async update(entity_ref: Provider_Entity_Reference, status: Status): Promise<any> {
+    async update(entity_ref: Provider_Entity_Reference, status: Status, ctx: RequestContext): Promise<any> {
         return this.statusDb.update_status(entity_ref, status);
     }
 
-    async replace(entity_ref: Provider_Entity_Reference, status: Status): Promise<any> {
+    async replace(entity_ref: Provider_Entity_Reference, status: Status, ctx: RequestContext): Promise<any> {
         return this.statusDb.replace_status(entity_ref, status);
     }
 
@@ -63,9 +64,12 @@ export class DifferUpdateStrategy extends StatusUpdateStrategy {
         this.watchlistDb = watchlistDb
     }
 
-    async update(entity_ref: Provider_Entity_Reference, status: Status): Promise<void> {
+    async update(entity_ref: Provider_Entity_Reference, status: Status, ctx: RequestContext): Promise<void> {
         let diffs: Diff[] = []
+        const getSpecSpan = spanOperation(`get_spec_db`,
+                                   ctx.tracing_ctx)
         const [metadata, spec] = await this.specDb.get_spec(entity_ref)
+        getSpecSpan.finish()
         for (let diff of this.differ.diffs(this.kind!, spec, status)) {
             diffs.push(diff)
         }
@@ -75,10 +79,16 @@ export class DifferUpdateStrategy extends StatusUpdateStrategy {
             watchlist.set([ent, []])
             await this.watchlistDb.update_watchlist(watchlist)
         }
-        await super.update(entity_ref, status)
+        const span = spanOperation(`update_status_db`,
+                                   ctx.tracing_ctx)
+        await super.update(entity_ref, status, ctx)
+        span.finish()
     }
 
-    async replace(entity_ref: Provider_Entity_Reference, status: Status) {
-        return this.statusDb.replace_status(entity_ref, status);
+    async replace(entity_ref: Provider_Entity_Reference, status: Status, ctx: RequestContext) {
+        const span = spanOperation(`replace_status_db`,
+                                   ctx.tracing_ctx)
+        await this.statusDb.replace_status(entity_ref, status);
+        span.finish()
     }
 }

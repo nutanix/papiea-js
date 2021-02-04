@@ -20,7 +20,7 @@ import {EntityCreationStrategy} from "./entity_creation_strategies/entity_creati
 import {ConstructorEntityCreationStrategy} from "./entity_creation_strategies/constructor_entity_creation_strategy"
 import {BasicEntityCreationStrategy} from "./entity_creation_strategies/basic_entity_creation_strategy"
 import {Validator} from "../validator"
-import {Authorizer} from "../auth/authz"
+import {Authorizer, IntentWatcherAuthorizer} from "../auth/authz"
 
 export type BehaviourStrategyMap = Map<IntentfulBehaviour, IntentfulStrategy>
 export type DiffSelectionStrategyMap = Map<DiffSelectionStrategy, DiffSelectionStrategyInterface>

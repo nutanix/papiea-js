@@ -35,7 +35,7 @@ console.log("Publishing papiea-core...")
 child_process.execSync("cd papiea-core; npm publish",{stdio:[0,1,2]})
 
 // Publish the rest..
-modify_and_publish('papiea-client', ['papiea-core'])
+modify_and_publish('papiea-client', ['papiea-core', 'papiea-backend-utils'])
 modify_and_publish('papiea-sdk/typescript', ['papiea-core', 'papiea-client', 'papiea-backend-utils'])
 modify_and_publish('papiea-engine', ['papiea-core', 'papiea-backend-utils'])
 modify_and_publish('papiea-backend-utils', ['papiea-core'])

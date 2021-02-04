@@ -2,6 +2,7 @@ import * as fs from "fs"
 import { load } from "js-yaml"
 import * as path from "path"
 import {LoggingVerbosityOptions} from "papiea-backend-utils"
+import {TracingConfig} from "jaeger-client"
 
 const PAPIEA_CONFIG_PATH = process.env.PAPIEA_CONFIG_PATH ?? path.join(__dirname, "../../papiea-config.yaml")
 
@@ -19,13 +20,15 @@ const TRANSFORM_FN_MAP: { [key in keyof PapieaConfig]: (val: any) => PapieaConfi
     entity_poll_delay: toNum,
     intent_resolve_delay: toNum,
     diff_resolve_delay: toNum,
+    diff_retry_exponent: toNum,
     debug: toBool,
     public_addr: toStr,
     mongo_url: toStr,
     mongo_db: toStr,
     admin_key: toStr,
     logging_level: toStr,
-    logging_verbosity: id
+    logging_verbosity: id,
+    tracing_config: id
 }
 
 export interface PapieaConfig {
@@ -67,8 +70,13 @@ export interface PapieaConfig {
     // Delay for rediffing watcher entities in milliseconds
     diff_resolve_delay: number
 
+    // Exponent value for the diff retry logic backoff calculation
+    diff_retry_exponent: number
+
     // Config options for logging verbosity
-    logging_verbosity: LoggingVerbosityOptions
+    logging_verbosity: LoggingVerbosityOptions,
+
+    tracing_config: TracingConfig
 }
 
 const PAPIEA_DEFAULT_CFG: PapieaConfig = {
@@ -84,9 +92,22 @@ const PAPIEA_DEFAULT_CFG: PapieaConfig = {
     entity_poll_delay: 250,
     intent_resolve_delay: 3000,
     diff_resolve_delay: 1500,
+    diff_retry_exponent: 1.3,
     logging_verbosity: {
         verbose: false,
         fields: []
+    },
+    tracing_config: {
+        reporter: {
+            collectorEndpoint: "http://jaeger:14268/api/traces",
+            agentHost: "jaeger",
+            agentPort: 6832,
+            logSpans: true
+        },
+        sampler: {
+            type: "const",
+            param: 1
+        }
     }
 }
 

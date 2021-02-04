@@ -17,5 +17,16 @@ services:
                         - PAPIEA_PUBLIC_URL=${PAPIEA_PUBLIC_URL}
                         - HOT_RELOAD=true
                         - PAPIEA_DEBUG=true
+                        - JAEGER_AGENT_HOST=jaeger
+                        - JAEGER_AGENT_PORT=6832
+                        - JAEGER_COLLECTOR_ENDPOINT='http://jaeger:14268/api/traces'
         mongo:
                 image: mongo:4.1
+
+        jaeger:
+                image: jaegertracing/all-in-one:latest
+                ports:
+                        - "6831:6831/udp"
+                        - "6832:6832/udp"
+                        - "16686:16686"
+                        - "14268:14268"

@@ -1,10 +1,11 @@
-import { Request, RequestHandler } from 'express'
-import { IncomingHttpHeaders } from 'http'
+import {Request, RequestHandler} from "express"
+import {IncomingHttpHeaders} from "http"
 
-import { Logger } from 'papiea-backend-utils'
+import {Logger} from "papiea-backend-utils"
 
-import { UserAuthInfo, UserAuthInfoRequest } from "./auth/authn"
-import { safeJSONParse } from "./utils/utils"
+import {UserAuthInfo, UserAuthInfoRequest} from "./auth/authn"
+import {safeJSONParse} from "./utils/utils"
+import {Span} from "opentracing"
 
 export interface AuditLogMessage {
     method: string,
@@ -14,7 +15,8 @@ export interface AuditLogMessage {
     request_ip?: string,
     response_body?: any,
     request_body?: any,
-    user?: UserAuthInfo
+    user?: UserAuthInfo,
+    trace_id?: string
 }
 
 export class AuditLogger {
@@ -52,6 +54,10 @@ export class AuditLogger {
             method: req.method,
             url: req.originalUrl,
             status_code: res.statusCode,
+        }
+        if (res.locals.ctx && res.locals.ctx.tracing_ctx) {
+            const span: Span = res.locals.ctx.tracing_ctx.parentSpan
+            logmsg.trace_id = span.context().toTraceId()
         }
         const verbose = this._logger.opts().verbosity_options.verbose
         const fields = this._logger.opts().verbosity_options.fields

@@ -484,8 +484,14 @@ export default class ApiDocsGenerator {
     }
 
     getProcedureSchema(base: string, procedure: Procedural_Signature): [string, string] {
-        const inputSchemaName = `${base}-${Object.keys(procedure.argument)[0]}`
-        const outputSchemaName = `${base}-${Object.keys(procedure.result)[0]}`
+        let inputSchemaName = `${base}-Input`
+        let outputSchemaName = `${base}-Output`
+        if (Object.keys(procedure.argument).length === 1) {
+            inputSchemaName = `${base}-${Object.keys(procedure.argument)[0]}`
+        }
+        if (Object.keys(procedure.result).length === 1) {
+            outputSchemaName = `${base}-${Object.keys(procedure.result)[0]}`
+        }
         return [inputSchemaName, outputSchemaName]
     }
 
@@ -526,7 +532,7 @@ export default class ApiDocsGenerator {
         const default_description = `Calls a procedure ${ procedure.name }`
         const procedural_def = {
             "description": `${ procedure.description ?? default_description }`,
-            "operationId": `call${ provider.prefix }${ procedure.name }`,
+            "operationId": `call${ provider.prefix }${kind.name}${ procedure.name }`,
             "tags": [`${ provider.prefix }/${ provider.version }/${ kind.name }/procedure`],
             "requestBody": {
                 "description": `${ procedure.name } input`,
@@ -571,7 +577,7 @@ export default class ApiDocsGenerator {
         const default_description = `Calls a procedure ${ procedure.name }`
         const procedural_def = {
             "description": `${ procedure.description ?? default_description }`,
-            "operationId": `call${ provider.prefix }${ procedure.name }`,
+            "operationId": `call_entity${ provider.prefix }${kind.name}${ procedure.name }`,
             "tags": [`${ provider.prefix }/${ provider.version }/${ kind.name }/procedure`],
             "parameters": [
                 {
@@ -754,11 +760,21 @@ export default class ApiDocsGenerator {
                        proceduralSignature: Procedural_Signature,
                        schemas: any,
                        transformNameFn: (provider: Provider, kind: Kind, procedure: Procedural_Signature) => [string, string]) {
-        const inputName = Object.keys(proceduralSignature.argument)[0]
-        const outputName = Object.keys(proceduralSignature.result)[0]
+        let inputSchemaDesc: any
+        let outputSchemaDesc: any
+        if (Object.keys(proceduralSignature.argument).length === 1) {
+            const inputName = Object.keys(proceduralSignature.argument)[0]
+            inputSchemaDesc = proceduralSignature.argument[inputName]
+        } else {
+            inputSchemaDesc = proceduralSignature.argument
+        }
+        if (Object.keys(proceduralSignature.result).length === 1) {
+            const outputName = Object.keys(proceduralSignature.result)[0]
+            outputSchemaDesc = proceduralSignature.result[outputName]
+        } else {
+            outputSchemaDesc = proceduralSignature.result
+        }
         const [transformedInputName, transformedOutputName] = transformNameFn(provider, kind, proceduralSignature)
-        const inputSchemaDesc = proceduralSignature.argument[inputName]
-        const outputSchemaDesc = proceduralSignature.result[outputName]
         proceduralSignature.argument = {[transformedInputName]: inputSchemaDesc}
         proceduralSignature.result = {[transformedOutputName]: outputSchemaDesc}
         Object.assign(schemas, proceduralSignature.argument)

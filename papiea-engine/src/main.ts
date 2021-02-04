@@ -1,6 +1,11 @@
 import * as express from "express";
 
-import { logLevelFromString, LoggerFactory } from 'papiea-backend-utils';
+import {
+    logLevelFromString,
+    LoggerFactory,
+    getTracer,
+    getTracingMiddleware
+} from "papiea-backend-utils"
 
 import createAPIDocsRouter from "./api_docs/api_docs_routes";
 import ApiDocsGenerator from "./api_docs/api_docs_generator";
@@ -14,7 +19,7 @@ import {
 } from "./auth/authn";
 import { createOAuth2Router } from "./auth/oauth2";
 import { S2SKeyUserAuthInfoExtractor } from "./auth/s2s";
-import { Authorizer, AdminAuthorizer, PerProviderAuthorizer } from "./auth/authz";
+import { Authorizer, AdminAuthorizer, PerProviderAuthorizer, IntentWatcherAuthorizer } from "./auth/authz";
 import { ValidatorImpl } from "./validator";
 import { ProviderCasbinAuthorizerFactory } from "./auth/casbin";
 import { BadRequestError } from "./errors/bad_request_error"
@@ -39,9 +44,12 @@ const adminKey = config.admin_key
 const loggingLevel = logLevelFromString(config.logging_level)
 const papieaDebug = config.debug
 const verbosityOptions = config.logging_verbosity
+const tracingConfig = config.tracing_config
 
 async function setUpApplication(): Promise<express.Express> {
     const logger = LoggerFactory.makeLogger({level: loggingLevel, verbosity_options: verbosityOptions});
+    const tracer = getTracer("papiea-engine", logger, tracingConfig.reporter, tracingConfig.sampler)
+    const trace = getTracingMiddleware(tracer)
     const auditLogger: AuditLogger = new AuditLogger(logger, papieaDebug)
     const app = express();
     app.use(cookieParser());
@@ -59,8 +67,9 @@ async function setUpApplication(): Promise<express.Express> {
     const watchlistDb = await mongoConnection.get_watchlist_db(logger)
     const graveyardDb = await mongoConnection.get_graveyard_db(logger)
     const validator = ValidatorImpl.create()
-    const entityApiAuthorizer: Authorizer = new PerProviderAuthorizer(logger, new ProviderCasbinAuthorizerFactory(logger));
+    const entityApiAuthorizer: PerProviderAuthorizer = new PerProviderAuthorizer(logger, new ProviderCasbinAuthorizerFactory(logger));
     const adminAuthorizer: Authorizer = new AdminAuthorizer()
+    const intentWatcherAuthorizer: IntentWatcherAuthorizer = new IntentWatcherAuthorizer(logger, entityApiAuthorizer, specDb, providerDb);
     const intentfulContext = new IntentfulContext(specDb, statusDb, graveyardDb, differ, intentWatcherDB, watchlistDb, validator, entityApiAuthorizer)
     const providerApi = new Provider_API_Impl(logger, providerDb, statusDb, s2skeyDb, watchlistDb, intentfulContext, adminAuthorizer, [adminAuthorizer, entityApiAuthorizer], validator)
     const sessionKeyApi = new SessionKeyAPI(sessionKeyDb)
@@ -85,8 +94,8 @@ async function setUpApplication(): Promise<express.Express> {
       })
     app.use(createAuthnRouter(logger, userAuthInfoExtractor));
     app.use(createOAuth2Router(logger, oauth2RedirectUri, providerDb, sessionKeyApi));
-    app.use('/provider', createProviderAPIRouter(providerApi));
-    app.use('/services', createEntityAPIRouter(new Entity_API_Impl(logger, statusDb, specDb, graveyardDb, providerDb, intentWatcherDB, entityApiAuthorizer, validator, intentfulContext)));
+    app.use('/provider', createProviderAPIRouter(providerApi, trace));
+    app.use('/services', createEntityAPIRouter(new Entity_API_Impl(logger, statusDb, specDb, graveyardDb, providerDb, intentWatcherDB, entityApiAuthorizer, intentWatcherAuthorizer, validator, intentfulContext), trace));
     app.use('/api-docs', createAPIDocsRouter('/api-docs', new ApiDocsGenerator(providerDb), providerDb));
     app.use(function (err: any, req: any, res: any, next: any) {
         if (res.headersSent) {

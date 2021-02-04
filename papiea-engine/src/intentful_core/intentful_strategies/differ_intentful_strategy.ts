@@ -8,6 +8,7 @@ import { Watchlist_DB } from "../../databases/watchlist_db_interface";
 import uuid = require("uuid")
 import { create_entry } from "../../intentful_engine/watchlist";
 import { Graveyard_DB } from "../../databases/graveyard_db_interface"
+import {RequestContext, spanOperation} from "papiea-backend-utils"
 
 export class DifferIntentfulStrategy extends IntentfulStrategy {
     protected differ: Differ
@@ -26,10 +27,18 @@ export class DifferIntentfulStrategy extends IntentfulStrategy {
         return [updatedMetadata, updatedSpec]
     }
 
-    async update(metadata: Metadata, spec: Spec): Promise<IntentWatcher | null> {
+    async update(metadata: Metadata, spec: Spec, ctx: RequestContext): Promise<IntentWatcher | null> {
+        const statusSpan = spanOperation(`get_status_db`,
+                                   ctx.tracing_ctx,
+                                   {entity_uuid: metadata.uuid})
         const [_, status] = await this.statusDb.get_status(metadata)
+        statusSpan.finish()
         let watcher_spec_version = metadata.spec_version + 1
+        const updateSpan = spanOperation(`update_entity_db`,
+                                   ctx.tracing_ctx,
+                                   {entity_uuid: metadata.uuid})
         await this.update_entity(metadata, spec)
+        updateSpan.finish()
         const watcher: IntentWatcher = {
             uuid: uuid(),
             entity_ref: {
@@ -46,7 +55,11 @@ export class DifferIntentfulStrategy extends IntentfulStrategy {
         for (let diff of this.differ.diffs(this.kind!, spec, status)) {
             watcher.diffs.push(diff)
         }
+        const watcherSpan = spanOperation(`create_watcher_db`,
+                                   ctx.tracing_ctx,
+                                   {entity_uuid: metadata.uuid})
         await this.intentWatcherDb.save_watcher(watcher)
+        watcherSpan.finish()
         const watchlist = await this.watchlistDb.get_watchlist()
         const ent = create_entry(metadata)
         if (!watchlist.has(ent)) {

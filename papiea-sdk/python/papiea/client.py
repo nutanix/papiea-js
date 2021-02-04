@@ -3,9 +3,12 @@ import logging
 from types import TracebackType
 from typing import Any, Optional, List, Type, Callable, AsyncGenerator
 
+from opentracing import Tracer
+
 from .api import ApiInstance
 from .core import AttributeDict, Entity, EntityReference, EntitySpec, IntentfulStatus, IntentWatcher, Metadata, Secret, \
     Spec
+from .tracing_utils import init_default_tracer, inject_tracing_headers
 
 FilterResults = AttributeDict
 
@@ -21,6 +24,7 @@ class EntityCRUD(object):
             kind: str,
             s2skey: Optional[str] = None,
             logger: logging.Logger = logging.getLogger(__name__),
+            tracer: Tracer = init_default_tracer()
     ):
         headers = {
             "Content-Type": "application/json",
@@ -31,6 +35,7 @@ class EntityCRUD(object):
             f"{papiea_url}/services/{prefix}/{version}/{kind}", headers=headers, logger=logger
         )
         self.kind = kind
+        self.tracer = tracer
         self.__constructor_present = None
 
     async def __aenter__(self) -> "EntityCRUD":
@@ -43,26 +48,39 @@ class EntityCRUD(object):
             exc_tb: Optional[TracebackType],
     ) -> None:
         await self.api_instance.close()
+        self.tracer.close()
 
     async def get(self, entity_reference: EntityReference) -> Entity:
-        return await self.api_instance.get(entity_reference.uuid)
+        with self.tracer.start_span(operation_name=f"get_entity_client") as span:
+            inject_tracing_headers(self.tracer, span, self.api_instance)
+            return await self.api_instance.get(entity_reference.uuid)
 
     async def get_all(self) -> List[Entity]:
-        res = await self.api_instance.get("")
-        return res.results
+        with self.tracer.start_span(operation_name=f"list_entities_client") as span:
+            inject_tracing_headers(self.tracer, span, self.api_instance)
+            res = await self.api_instance.get("")
+            return res.results
 
     async def create(self, payload: Any) -> EntitySpec:
-        return await self.api_instance.post("", payload)
+        with self.tracer.start_span(operation_name=f"create_entity_client") as span:
+            inject_tracing_headers(self.tracer, span, self.api_instance)
+            return await self.api_instance.post("", payload)
 
     async def update(self, metadata: Metadata, spec: Spec) -> EntitySpec:
-        payload = {"metadata": {"spec_version": metadata.spec_version}, "spec": spec}
-        return await self.api_instance.put(metadata.uuid, payload)
+        with self.tracer.start_span(operation_name=f"update_entity_client") as span:
+            inject_tracing_headers(self.tracer, span, self.api_instance)
+            payload = {"metadata": {"spec_version": metadata.spec_version}, "spec": spec}
+            return await self.api_instance.put(metadata.uuid, payload)
 
     async def delete(self, entity_reference: EntityReference) -> None:
-        return await self.api_instance.delete(entity_reference.uuid)
+        with self.tracer.start_span(operation_name=f"delete_entity_client") as span:
+            inject_tracing_headers(self.tracer, span, self.api_instance)
+            return await self.api_instance.delete(entity_reference.uuid)
 
     async def filter(self, filter_obj: Any) -> FilterResults:
-        return await self.api_instance.post("filter", filter_obj)
+        with self.tracer.start_span(operation_name=f"filter_entities_client") as span:
+            inject_tracing_headers(self.tracer, span, self.api_instance)
+            return await self.api_instance.post("filter", filter_obj)
 
     async def filter_iter(self, filter_obj: Any) -> Callable[[Optional[int], Optional[int]], AsyncGenerator[Any, None]]:
         async def iter_func(batch_size: Optional[int] = None, offset: Optional[int] = None):
@@ -87,14 +105,18 @@ class EntityCRUD(object):
     async def invoke_procedure(
             self, procedure_name: str, entity_reference: EntityReference, input_: Any
     ) -> Any:
-        payload = input_
-        return await self.api_instance.post(
-            f"{entity_reference.uuid}/procedure/{procedure_name}", payload
-        )
+        with self.tracer.start_span(operation_name=f"invoke_{procedure_name}_procedure_client") as span:
+            inject_tracing_headers(self.tracer, span, self.api_instance)
+            payload = input_
+            return await self.api_instance.post(
+                f"{entity_reference.uuid}/procedure/{procedure_name}", payload
+            )
 
     async def invoke_kind_procedure(self, procedure_name: str, input_: Any) -> Any:
-        payload = input_
-        return await self.api_instance.post(f"procedure/{procedure_name}", payload)
+        with self.tracer.start_span(operation_name=f"invoke_{procedure_name}_kind_procedure_client") as span:
+            inject_tracing_headers(self.tracer, span, self.api_instance)
+            payload = input_
+            return await self.api_instance.post(f"procedure/{procedure_name}", payload)
 
 
 class IntentWatcherClient(object):
@@ -102,11 +124,14 @@ class IntentWatcherClient(object):
             self,
             papiea_url: str,
             s2skey: Secret = None,
-            logger: logging.Logger = logging.getLogger(__name__)
+            logger: logging.Logger = logging.getLogger(__name__),
+            tracer: Optional[Tracer] = init_default_tracer()
     ):
         headers = {
             "Content-Type": "application/json",
         }
+
+        self.tracer = tracer
 
         if s2skey is not None:
             headers["Authorization"] = f"Bearer {s2skey}"
@@ -126,18 +151,25 @@ class IntentWatcherClient(object):
             exc_tb: Optional[TracebackType]
     ) -> None:
         await self.api_instance.close()
+        self.tracer.close()
 
     async def get_intent_watcher(self, id: str) -> IntentWatcher:
-        return await self.api_instance.get(id)
+        with self.tracer.start_span(operation_name=f"get_intent_watcher_client") as span:
+            inject_tracing_headers(self.tracer, span, self.api_instance)
+            return await self.api_instance.get(id)
 
     async def list_intent_watcher(self) -> List[IntentWatcher]:
-        res = await self.api_instance.get("")
-        return res.results
+        with self.tracer.start_span(operation_name=f"list_intent_watchers_client") as span:
+            inject_tracing_headers(self.tracer, span, self.api_instance)
+            res = await self.api_instance.get("")
+            return res.results
 
     # filter_intent_watcher(AttributeDict(status=IntentfulStatus.Pending))
     async def filter_intent_watcher(self, filter_obj: Any) -> List[IntentWatcher]:
-        res = await self.api_instance.post("filter", filter_obj)
-        return res.results
+        with self.tracer.start_span(operation_name=f"filter_intent_watcher_client") as span:
+            inject_tracing_headers(self.tracer, span, self.api_instance)
+            res = await self.api_instance.post("filter", filter_obj)
+            return res.results
 
     async def wait_for_watcher_status(self, watcher_ref: AttributeDict, watcher_status: IntentfulStatus,
                                       timeout_secs: float = 50, delay_millis: float = 500) -> bool:
@@ -162,6 +194,7 @@ class ProviderClient(object):
             version: str,
             s2skey: Optional[str] = None,
             logger: logging.Logger = logging.getLogger(__name__),
+            tracer: Optional[Tracer] = init_default_tracer()
     ):
         self.papiea_url = papiea_url
         self.provider = provider
@@ -176,6 +209,7 @@ class ProviderClient(object):
         self.api_instance = ApiInstance(
             f"{papiea_url}/services/{provider}/{version}", headers=headers, logger=logger
         )
+        self.tracer = tracer
 
     async def __aenter__(self) -> "ProviderClient":
         return self
@@ -187,6 +221,7 @@ class ProviderClient(object):
             exc_tb: Optional[TracebackType],
     ) -> None:
         await self.api_instance.close()
+        self.tracer.close()
 
     def get_kind(self, kind: str) -> EntityCRUD:
         return EntityCRUD(
@@ -194,5 +229,7 @@ class ProviderClient(object):
         )
 
     async def invoke_procedure(self, procedure_name: str, input: Any) -> Any:
-        payload = input
-        return await self.api_instance.post(f"procedure/{procedure_name}", payload)
+        with self.tracer.start_span(operation_name=f"invoke_{procedure_name}_procedure_client") as span:
+            inject_tracing_headers(self.tracer, span, self.api_instance)
+            payload = input
+            return await self.api_instance.post(f"procedure/{procedure_name}", payload)

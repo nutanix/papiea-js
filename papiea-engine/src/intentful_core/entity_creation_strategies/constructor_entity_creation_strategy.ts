@@ -22,6 +22,7 @@ import {Authorizer} from "../../auth/authz"
 import {ValidationError} from "../../errors/validation_error"
 import deepEqual = require("deep-equal")
 import uuid = require("uuid")
+import {RequestContext, spanOperation} from "papiea-backend-utils"
 
 export class ConstructorEntityCreationStrategy extends EntityCreationStrategy {
     protected differ: Differ
@@ -43,15 +44,18 @@ export class ConstructorEntityCreationStrategy extends EntityCreationStrategy {
         return [updatedMetadata, updatedSpec, entity.status]
     }
 
-    public async create(input: any): Promise<EntityCreationResult> {
-        const entity = await this.invoke_constructor(`__${this.kind.name}_create`, input)
+    public async create(input: any, ctx: RequestContext): Promise<EntityCreationResult> {
+        const entity = await this.invoke_constructor(`__${this.kind.name}_create`, input, ctx)
         entity.metadata = await this.create_metadata(entity.metadata ?? {})
         await this.validate_entity(entity)
         const spec_status_equal = deepEqual(entity.spec, entity.status)
         if (!spec_status_equal && this.kind.intentful_behaviour === IntentfulBehaviour.SpecOnly) {
             throw OnActionError.create("Spec-only entity constructor returned spec not matching status", "Constructor", this.kind.name)
         }
+        const span = spanOperation(`save_entity_db`,
+                                   ctx.tracing_ctx)
         const [created_metadata, created_spec, created_status] = await this.save_entity(entity)
+        span.finish()
         let watcher: null | IntentWatcher = null
         if (!spec_status_equal && (this.kind.intentful_behaviour === IntentfulBehaviour.Differ || this.kind.intentful_behaviour === IntentfulBehaviour.Basic)) {
             watcher = {
@@ -86,7 +90,7 @@ export class ConstructorEntityCreationStrategy extends EntityCreationStrategy {
         }
     }
 
-    protected async invoke_constructor(procedure_name: string, input: any): Promise<Entity> {
+    protected async invoke_constructor(procedure_name: string, input: any, ctx: RequestContext): Promise<Entity> {
         let entity: Entity
         if (this.kind) {
             const constructor = this.kind.kind_procedures[procedure_name]
@@ -100,9 +104,12 @@ export class ConstructorEntityCreationStrategy extends EntityCreationStrategy {
                     this.validator.validate(input, Object.values(constructor.argument)[0], schemas,
                                             this.provider.allowExtraProps,
                                             Object.keys(constructor.argument)[0], "Constructor procedure")
+                    const span = spanOperation(`custom_constructor`,
+                                               ctx.tracing_ctx)
                     const {data} = await axios.post<Entity>(this.kind.kind_procedures[procedure_name].procedure_callback, {
                         input
-                    }, {headers: this.user})
+                    }, {headers: {...ctx.tracing_ctx.headers, ...this.user}})
+                    span.finish()
                     entity = data
                 } catch (e) {
                     if (e instanceof ValidationError) {

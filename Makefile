@@ -96,27 +96,24 @@ papiea-engine/node_modules:
 	yarn --cwd papiea-engine
 .PHONY: papiea-engine/node_modules
 
-build_deps: node_modules_deps papiea-backend-utils/build papiea-client/build
+build_deps: papiea-client/build
 .PHONY: build_deps
 
-papiea-client/build:
+papiea-client/build: papiea-client/node_modules
 	yarn --cwd papiea-client run build
 .PHONY: papiea-client/build
 
-papiea-backend-utils/build:
+papiea-client/node_modules: papiea-backend-utils/build
+	yarn --cwd papiea-client
+.PHONY: papiea-client/node_modules
+
+papiea-backend-utils/build: papiea-backend-utils/node_modules
 	yarn --cwd papiea-backend-utils run build
 .PHONY: papiea-backend-utils/build
 
-node_modules_deps: papiea-core/build papiea-backend-utils/node_modules papiea-client/node_modules
-.PHONY: node_modules_deps
-
-papiea-backend-utils/node_modules:
+papiea-backend-utils/node_modules: papiea-core/build
 	yarn --cwd papiea-backend-utils
 .PHONY: papiea-backend-utils/node_modules
-
-papiea-client/node_modules:
-	yarn --cwd papiea-client
-.PHONY: papiea-client/node_modules # TODO: Fix up this and other node_modules targets dependencies
 
 papiea-core/build: papiea-core/node_modules
 	yarn --cwd papiea-core run build

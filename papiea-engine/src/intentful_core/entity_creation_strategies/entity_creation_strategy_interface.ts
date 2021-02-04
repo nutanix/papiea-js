@@ -17,6 +17,7 @@ import {Watchlist_DB} from "../../databases/watchlist_db_interface"
 import {Validator} from "../../validator"
 import uuid = require("uuid")
 import {Authorizer} from "../../auth/authz"
+import {RequestContext} from "papiea-backend-utils"
 
 export interface EntityCreationResult {
     intent_watcher: IntentWatcher | null,
@@ -120,7 +121,7 @@ export abstract class EntityCreationStrategy {
         return [updatedMetadata, updatedSpec]
     }
 
-    abstract create(input: unknown): Promise<EntityCreationResult>
+    abstract create(input: unknown, ctx: RequestContext): Promise<EntityCreationResult>
 
     setKind(kind: Kind): void {
         this.kind = kind

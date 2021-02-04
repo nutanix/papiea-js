@@ -129,7 +129,7 @@ export class ProceduralCtx implements ProceduralCtx_Interface {
         return logger
     }
 
-    async get_provider_client(key?: string): Promise<ProviderClient> {
+    get_provider_client(key?: string): ProviderClient {
         let token: string
         if (key !== undefined) {
             token = key

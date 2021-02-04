@@ -3,6 +3,7 @@ import { Status_DB } from "../../databases/status_db_interface"
 import { IntentfulStrategy } from "./intentful_strategy_interface"
 import { Metadata, Spec, Entity, IntentWatcher } from "papiea-core"
 import { Graveyard_DB } from "../../databases/graveyard_db_interface"
+import {RequestContext, spanOperation} from "papiea-backend-utils"
 
 export class SpecOnlyIntentfulStrategy extends IntentfulStrategy {
     constructor(specDb: Spec_DB, statusDb: Status_DB, graveyardDb: Graveyard_DB) {
@@ -17,8 +18,12 @@ export class SpecOnlyIntentfulStrategy extends IntentfulStrategy {
     }
 
     // Update spec and status with spec changes received
-    async update(metadata: Metadata, spec: Spec): Promise<IntentWatcher | null> {
+    async update(metadata: Metadata, spec: Spec, ctx: RequestContext): Promise<IntentWatcher | null> {
+        const span = spanOperation(`update_entity_db`,
+                                   ctx.tracing_ctx,
+                                   {entity_uuid: metadata.uuid})
         await this.update_entity(metadata, spec)
+        span.finish()
         return null
     }
 }

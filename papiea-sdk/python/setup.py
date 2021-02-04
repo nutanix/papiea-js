@@ -27,5 +27,5 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     python_requires=">=3.7",
-    install_requires=["aiohttp>=3.6.2"],
+    install_requires=["aiohttp>=3.6.2", "jaeger-client>=4.4.0"],
 )

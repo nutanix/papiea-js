@@ -320,6 +320,64 @@ describe("API docs test entity", () => {
         })
     });
 
+    test("Provider with procedures generates correct openAPI spec when an object has multiple keys", async () => {
+        expect.hasAssertions();
+        const procedure_id_anon = "computeSumWithValidationAnonymous";
+        const proceduralSignatureForProviderAnon: Procedural_Signature = {
+            name: "computeSumWithValidationAnonymous",
+            argument: {
+                "type": "object",
+                "properties": {
+                    "sum": {
+                        "type": "number"
+                    }
+                }
+            },
+            result: {
+                "type": "object",
+                "properties": {
+                    "sum": {
+                        "type": "number"
+                    }
+                }
+            },
+            execution_strategy: Procedural_Execution_Strategy.Halt_Intentful,
+            procedure_callback: "127.0.0.1:9011",
+            base_callback: "127.0.0.1:9011"
+        };
+        const provider: Provider = new ProviderBuilder("provider_with_validation_scheme")
+            .withVersion("0.1.0")
+            .withKinds()
+            .withCallback(`http://127.0.0.1:9010`)
+            .withProviderProcedures({ [procedure_id_anon]: proceduralSignatureForProviderAnon })
+            .withKindProcedures()
+            .withEntityProcedures()
+            .build();
+        const providerDbMock = new Provider_DB_Mock(provider);
+        const apiDocsGenerator = new ApiDocsGenerator(providerDbMock);
+        const apiDoc = await apiDocsGenerator.getApiDocs(providerDbMock.provider);
+
+        expect(apiDoc.paths[`/services/${ provider.prefix }/${ provider.version }/procedure/${ procedure_id_anon }`]
+                   .post
+                   .requestBody
+                   .content["application/json"]
+                   .schema
+                   .properties
+                   .input['$ref']).toEqual(`#/components/schemas/provider_with_validation_scheme-0.1.0-computeSumWithValidationAnonymous-Input`);
+
+        expect(apiDoc.paths[`/services/${ provider.prefix }/${ provider.version }/procedure/${ procedure_id_anon }`]
+                   .post
+                   .responses["200"]
+                   .content["application/json"]
+                   .schema["$ref"]).toEqual(`#/components/schemas/provider_with_validation_scheme-0.1.0-computeSumWithValidationAnonymous-Output`);
+
+        expect(apiDoc.paths[`/services/${ provider.prefix }/${ provider.version }/procedure/${ procedure_id_anon }`]
+                   .post
+                   .responses["default"]
+                   .content["application/json"]
+                   .schema["$ref"]).toEqual(`#/components/schemas/Error`);
+    });
+
     test("Provider with procedures generates correct openAPI emitting all variables without 'x-papiea' - 'status_only' property", async () => {
         expect.hasAssertions();
         const kind = new KindBuilder(IntentfulBehaviour.Basic).build()

@@ -3,6 +3,7 @@ from types import TracebackType
 from typing import Any, Callable, List, NoReturn, Optional, Type, Union
 
 from aiohttp import web
+from opentracing import Tracer, Format, child_of
 
 from .api import ApiInstance
 from .client import IntentWatcherClient
@@ -25,6 +26,7 @@ from .core import (
 from .python_sdk_context import IntentfulCtx, ProceduralCtx
 from .python_sdk_exceptions import InvocationError, SecurityApiError
 from .utils import json_loads_attrs, validate_error_codes
+from .tracing_utils import init_default_tracer, get_special_operation_name
 
 
 class ProviderServerManager(object):
@@ -134,7 +136,8 @@ class ProviderSdk(object):
             s2skey: Secret,
             server_manager: Optional[ProviderServerManager] = None,
             allow_extra_props: bool = False,
-            logger: logging.Logger = None
+            logger: logging.Logger = None,
+            tracer: Tracer = init_default_tracer()
     ):
         self._version = None
         self._prefix = None
@@ -147,11 +150,12 @@ class ProviderSdk(object):
             self._server_manager = server_manager
         else:
             self._server_manager = ProviderServerManager()
+        self.tracer = tracer
         self._procedures = {}
         self.meta_ext = {}
         self.allow_extra_props = allow_extra_props
         self._security_api = SecurityApi(self, s2skey)
-        self._intent_watcher_client = IntentWatcherClient(papiea_url, s2skey, logger)
+        self._intent_watcher_client = IntentWatcherClient(papiea_url, s2skey, logger, tracer)
         self._provider_api = ApiInstance(
             self.provider_url,
             headers={
@@ -229,14 +233,14 @@ class ProviderSdk(object):
                 intentful_behaviour=entity_description[name]["x-papiea-entity"],
                 differ=None,
             )
-            kind_builder = KindBuilder(the_kind, self, self.allow_extra_props)
+            kind_builder = KindBuilder(the_kind, self, self.allow_extra_props, self.tracer)
             self._kind.append(the_kind)
             return kind_builder
 
     def add_kind(self, kind: Kind) -> Optional["KindBuilder"]:
         if kind not in self._kind:
             self._kind.append(kind)
-            kind_builder = KindBuilder(kind, self, self.allow_extra_props)
+            kind_builder = KindBuilder(kind, self, self.allow_extra_props, self.tracer)
             return kind_builder
         else:
             return None
@@ -286,10 +290,15 @@ class ProviderSdk(object):
         async def procedure_callback_fn(req):
             try:
                 body_obj = json_loads_attrs(await req.text())
-                result = await handler(
-                    ProceduralCtx(self, prefix, version, req.headers), body_obj
+                span_context = self.tracer.extract(
+                    format=Format.HTTP_HEADERS,
+                    carrier=req.headers,
                 )
-                return web.json_response(result)
+                with self.tracer.start_span(operation_name=f"{name}_provider_procedure_sdk", references=child_of(span_context)):
+                    result = await handler(
+                        ProceduralCtx(self, prefix, version, req.headers), body_obj
+                    )
+                    return web.json_response(result)
             except InvocationError as e:
                 return web.json_response(e.to_response(), status=e.status_code)
             except Exception as e:
@@ -342,10 +351,11 @@ class ProviderSdk(object):
             public_host: Optional[str],
             public_port: Optional[int],
             allow_extra_props: bool = False,
-            logger: logging.Logger = logging.getLogger(__name__)
+            logger: logging.Logger = logging.getLogger(__name__),
+            tracer: Tracer = init_default_tracer()
     ) -> "ProviderSdk":
         server_manager = ProviderServerManager(public_host, public_port)
-        return ProviderSdk(papiea_url, s2skey, server_manager, allow_extra_props, logger)
+        return ProviderSdk(papiea_url, s2skey, server_manager, allow_extra_props, logger, tracer)
 
     def secure_with(
             self, oauth_config: Any, casbin_model: str, casbin_initial_policy: str
@@ -376,7 +386,7 @@ class ProviderSdk(object):
 
 
 class KindBuilder:
-    def __init__(self, kind: Kind, provider: ProviderSdk, allow_extra_props: bool):
+    def __init__(self, kind: Kind, provider: ProviderSdk, allow_extra_props: bool, tracer: Tracer):
         self.kind = kind
         self.provider = provider
         self.allow_extra_props = allow_extra_props
@@ -384,6 +394,7 @@ class KindBuilder:
         self.server_manager = provider.server_manager
         self.entity_url = provider.entity_url
         self.provider_url = provider.provider_url
+        self.tracer = tracer
 
     def get_prefix(self) -> str:
         return self.provider.get_prefix()
@@ -419,16 +430,21 @@ class KindBuilder:
         async def procedure_callback_fn(req):
             try:
                 body_obj = json_loads_attrs(await req.text())
-                result = await handler(
-                    ProceduralCtx(self.provider, prefix, version, req.headers),
-                    Entity(
-                        metadata=body_obj.metadata,
-                        spec=body_obj.get("spec", {}),
-                        status=body_obj.get("status", {}),
-                    ),
-                    body_obj.input,
+                span_context = self.tracer.extract(
+                    format=Format.HTTP_HEADERS,
+                    carrier=req.headers,
                 )
-                return web.json_response(result)
+                with self.tracer.start_span(operation_name=f"{name}_entity_procedure", references=child_of(span_context)):
+                    result = await handler(
+                        ProceduralCtx(self.provider, prefix, version, req.headers),
+                        Entity(
+                            metadata=body_obj.metadata,
+                            spec=body_obj.get("spec", {}),
+                            status=body_obj.get("status", {}),
+                        ),
+                        body_obj.input,
+                    )
+                    return web.json_response(result)
             except InvocationError as e:
                 return web.json_response(e.to_response(), status=e.status_code)
             except Exception as e:
@@ -467,12 +483,18 @@ class KindBuilder:
 
         async def procedure_callback_fn(req):
             try:
-                body_obj = json_loads_attrs(await req.text())
-                result = await handler(
-                    ProceduralCtx(self.provider, prefix, version, req.headers),
-                    body_obj.input,
+                span_context = self.tracer.extract(
+                    format=Format.HTTP_HEADERS,
+                    carrier=req.headers,
                 )
-                return web.json_response(result)
+                operation_name = get_special_operation_name(name, prefix, version, self.kind.name)
+                with self.tracer.start_span(operation_name=operation_name, references=child_of(span_context)):
+                    body_obj = json_loads_attrs(await req.text())
+                    result = await handler(
+                        ProceduralCtx(self.provider, prefix, version, req.headers),
+                        body_obj.input,
+                    )
+                    return web.json_response(result)
             except InvocationError as e:
                 return web.json_response(e.to_response(), status=e.status_code)
             except Exception as e:
@@ -529,16 +551,21 @@ class KindBuilder:
 
         async def procedure_callback_fn(req):
             try:
-                body_obj = json_loads_attrs(await req.text())
-                result = await handler(
-                    IntentfulCtx(self.provider, prefix, version, req.headers),
-                    Entity(
-                        metadata=body_obj.metadata,
-                        spec=body_obj.get("spec", {}),
-                        status=body_obj.get("status", {}),
-                    ),
-                    body_obj.input,
+                span_context = self.tracer.extract(
+                    format=Format.HTTP_HEADERS,
+                    carrier=req.headers,
                 )
+                with self.tracer.start_span(operation_name=f"{sfs_signature}_handler_procedure", references=child_of(span_context)):
+                    body_obj = json_loads_attrs(await req.text())
+                    result = await handler(
+                        IntentfulCtx(self.provider, prefix, version, req.headers),
+                        Entity(
+                            metadata=body_obj.metadata,
+                            spec=body_obj.get("spec", {}),
+                            status=body_obj.get("status", {}),
+                        ),
+                        body_obj.input,
+                    )
                 return web.json_response(result)
             except InvocationError as e:
                 return web.json_response(e.to_response(), status=e.status_code)

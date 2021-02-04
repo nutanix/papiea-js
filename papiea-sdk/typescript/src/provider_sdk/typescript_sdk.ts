@@ -28,9 +28,10 @@ import {
     Version,
     IntentWatcher, ErrorSchemas, Status, Spec, Metadata,
 } from "papiea-core"
-import { LoggerFactory } from 'papiea-backend-utils'
+import {getTracer, LoggerFactory} from "papiea-backend-utils"
 import { InvocationError, SecurityApiError } from "./typescript_sdk_exceptions"
-import { validate_error_codes, get_papiea_version } from "./typescript_sdk_utils"
+import {validate_error_codes, get_papiea_version, spanSdkOperation} from "./typescript_sdk_utils"
+import {Tracer} from "opentracing"
 
 class SecurityApiImpl implements SecurityApi {
     readonly provider: ProviderSdk;
@@ -99,8 +100,9 @@ export class ProviderSdk implements ProviderImpl {
     protected readonly _intentWatcherClient : IntentWatcherClient
     protected allowExtraProps: boolean;
     protected readonly _sdk_version: Version;
+    protected readonly _tracer: Tracer
 
-    constructor(papiea_url: string, s2skey: Secret, server_manager?: Provider_Server_Manager, allowExtraProps?: boolean) {
+    constructor(papiea_url: string, s2skey: Secret, server_manager?: Provider_Server_Manager, allowExtraProps?: boolean, tracer?: Tracer) {
         this._version = null;
         this._prefix = null;
         this._kind = [];
@@ -108,6 +110,7 @@ export class ProviderSdk implements ProviderImpl {
         this._papiea_url = papiea_url;
         this._s2skey = s2skey;
         this._server_manager = server_manager || new Provider_Server_Manager();
+        this._tracer = tracer ?? getTracer("papiea-sdk")
         this._procedures = {};
         this.meta_ext = {};
         this.allowExtraProps = allowExtraProps || false;
@@ -188,7 +191,7 @@ export class ProviderSdk implements ProviderImpl {
                 differ: undefined,
             };
 
-            const kind_builder = new Kind_Builder(the_kind, this, this.allowExtraProps);
+            const kind_builder = new Kind_Builder(the_kind, this, this.allowExtraProps, this._tracer);
             this._kind.push(the_kind);
             return kind_builder;
         } else {
@@ -199,7 +202,7 @@ export class ProviderSdk implements ProviderImpl {
     add_kind(kind: Kind): Kind_Builder | null {
         if (this._kind.indexOf(kind) === -1) {
             this._kind.push(kind);
-            const kind_builder = new Kind_Builder(kind, this, this.allowExtraProps);
+            const kind_builder = new Kind_Builder(kind, this, this.allowExtraProps, this._tracer);
             return kind_builder;
         } else {
             return null;
@@ -251,9 +254,11 @@ export class ProviderSdk implements ProviderImpl {
         this._server_manager.register_handler("/" + name, async (req, res) => {
             const ctx = new ProceduralCtx(this, req.headers, name)
             try {
+                const span = spanSdkOperation(`${name}_provider_procedure_sdk_handler`, this._tracer, req, this.provider)
                 const result = await handler(ctx, req.body.input)
                 ctx.cleanup()
                 res.json(result);
+                span.finish()
             } catch (e) {
                 ctx.get_logger().error(JSON.stringify(e?.response?.data) ?? e)
                 if (e instanceof InvocationError) {
@@ -336,6 +341,19 @@ export class ProviderSdk implements ProviderImpl {
 
     public get_sdk_version(): Version {
         return this._sdk_version;
+    }
+
+    public cleanup(): void {
+        try {
+            this.server.close();
+        } catch (e) {
+        }
+        try {
+            // Assume a tracer has a close method
+            (this._tracer as any).close()
+            (this._intentWatcherClient.close())
+        } catch (e) {
+        }
     }
 }
 
@@ -420,8 +438,9 @@ export class Kind_Builder {
     provider_url: string;
     private readonly allowExtraProps: boolean;
     private readonly provider: ProviderSdk;
+    private readonly tracer: Tracer
 
-    constructor(kind: Kind, provider: ProviderSdk, allowExtraProps: boolean) {
+    constructor(kind: Kind, provider: ProviderSdk, allowExtraProps: boolean, tracer: Tracer) {
         this.provider = provider;
         this.server_manager = provider.server_manager;
         this.kind = kind;
@@ -430,6 +449,7 @@ export class Kind_Builder {
         this.get_prefix = provider.get_prefix;
         this.get_version = provider.get_version;
         this.allowExtraProps = allowExtraProps
+        this.tracer = tracer
     }
 
     entity_procedure(name: string,
@@ -453,6 +473,7 @@ export class Kind_Builder {
             const ctx = new ProceduralCtx(this.provider, req.headers,
                                           `${this.kind.name}/${name}`)
             try {
+                const span = spanSdkOperation(`${name}_entity_procedure_sdk_handler`, this.tracer, req, this.provider.provider)
                 const result = await handler(ctx, {
                     metadata: req.body.metadata,
                     spec: req.body.spec,
@@ -460,6 +481,7 @@ export class Kind_Builder {
                 }, req.body.input);
                 ctx.cleanup()
                 res.json(result);
+                span.finish()
             } catch (e) {
                 ctx.get_logger().error(JSON.stringify(e?.response?.data) ?? e)
                 if (e instanceof InvocationError) {
@@ -521,6 +543,7 @@ export class Kind_Builder {
             const ctx = new ProceduralCtx(this.provider, req.headers,
                                           `${this.kind.name}/${sfs_signature}`)
             try {
+                const span = spanSdkOperation(`${sfs_signature}_sdk_handler`, this.tracer, req, this.provider.provider)
                 const result = await handler(ctx, {
                     metadata: req.body.metadata,
                     spec: req.body.spec,
@@ -528,6 +551,7 @@ export class Kind_Builder {
                 }, req.body.input);
                 ctx.cleanup()
                 res.json(result);
+                span.finish()
             } catch (e) {
                 ctx.get_logger().error(JSON.stringify(e?.response?.data) ?? e)
                 if (e instanceof InvocationError) {
@@ -562,9 +586,11 @@ export class Kind_Builder {
             const ctx = new ProceduralCtx(this.provider, req.headers,
                                           `${this.kind.name}/${name}`)
             try {
+                const span = spanSdkOperation(`${name}_kind_procedure_sdk_handler`, this.tracer, req, this.provider.provider, {kind: this.kind.name})
                 const result = await handler(ctx, req.body.input);
                 ctx.cleanup()
                 res.json(result);
+                span.finish()
             } catch (e) {
                 ctx.get_logger().error(JSON.stringify(e?.response?.data) ?? e)
                 if (e instanceof InvocationError) {
@@ -596,6 +622,11 @@ export class Kind_Builder {
         handle.cleanup()
         this.kind_procedure(name, {}, handler)
         return this
+    }
+
+    diff_retry_exponent(diff_retry_exponent?: number): Kind_Builder {
+        this.kind.diff_retry_exponent = diff_retry_exponent
+        return this;
     }
 }
 

@@ -1,3 +1,10 @@
+- Version 0.9.17+1928: fix api docs problem (#614) PR url: git@github.com:nutanix/papiea.git/pull/614
+- Version 0.9.16+1924: Reduced diff retry backoff exponent for debugging purposes (#594) PR url: git@github.com:nutanix/papiea.git/pull/594
+- Version 0.9.15+1918: Papiea client is dependent on backend-utils, capture it
+- Version 0.9.14+1909: Swallowing stacktrace is bad for debugging
+- Version 0.9.13+1906: Swallowing stacktrace is bad for debugging
+- Version 0.9.12+1893: Introduce tracing to logging of papiea components (#584) PR url: git@github.com:nutanix/papiea.git/pull/584
+- Version 0.9.11+1862: Added authorizer for intent watcher related operations (#591) PR url: git@github.com:nutanix/papiea.git/pull/591
 - Version 0.9.10+1845: added test and check for the wrong format (#590)
 - Version 0.9.9+1835: Added semantic version check for the papiea sdk requests (#573) PR url: git@github.com:nutanix/papiea.git/pull/573
 - Version 0.9.8+1831: Logging verbosity (#578) PR url: git@github.com:nutanix/papiea.git/pull/578

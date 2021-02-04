@@ -19,6 +19,8 @@ import {
     UnauthorizedError,
     ValidationError
 } from "./errors/errors";
+import {Tracer} from "opentracing"
+import {getTracer, spanOperation} from "papiea-backend-utils"
 
 interface EntityCreationResult {
     intent_watcher: IntentWatcher | null,
@@ -36,6 +38,10 @@ const PAPIEA_VERSION: string = packageJSON.version.split('+')[0];
 
 function delay(ms: number) {
     return new Promise( resolve => setTimeout(resolve, ms) );
+}
+
+function getHeaders(s2skey: string): any {
+    return { "Authorization": `Bearer ${ s2skey }`, "Papiea-Version": `${ PAPIEA_VERSION }` }
 }
 
 function make_request<T = any, Y = AxiosPromise<T>>(f: (url: string, data?: any, config?: AxiosRequestConfig) => Y, url: string, data?: any, config?: AxiosRequestConfig): Y {
@@ -65,43 +71,64 @@ function make_request<T = any, Y = AxiosPromise<T>>(f: (url: string, data?: any,
     }
 }
 
-async function create_entity(provider: string, kind: string, version: string, payload: any, papiea_url: string, s2skey: string): Promise<EntityCreationResult> {
-    const { data: { metadata, spec, intent_watcher, status } } = await make_request<EntityCreationResult>(axios.post, `${ papiea_url }/services/${ provider }/${ version }/${ kind }`, payload, { headers: { "Authorization": `Bearer ${ s2skey }`, "Papiea-Version": `${ PAPIEA_VERSION }` } });
+async function create_entity(provider: string, kind: string, version: string, payload: any, papiea_url: string, s2skey: string, tracer: Tracer): Promise<EntityCreationResult> {
+    const headers = getHeaders(s2skey)
+    const span = spanOperation("create_entity_client", {headers, tracer})
+    const { data: { metadata, spec, intent_watcher, status } } = await make_request<EntityCreationResult>(axios.post, `${ papiea_url }/services/${ provider }/${ version }/${ kind }`, payload, {headers});
+    span.finish()
     return { metadata, spec, intent_watcher, status };
 }
 
-async function update_entity(provider: string, kind: string, version: string, request_spec: Spec, request_metadata: Metadata, papiea_url: string, s2skey: string): Promise<IntentWatcher | undefined> {
+async function update_entity(provider: string, kind: string, version: string, request_spec: Spec, request_metadata: Metadata, papiea_url: string, s2skey: string, tracer: Tracer): Promise<IntentWatcher | undefined> {
+    const headers = getHeaders(s2skey)
+    const span = spanOperation("update_entity_client", {headers, tracer}, {entity_uuid: request_metadata.uuid})
     const { data: { watcher } } = await make_request(axios.put, `${ papiea_url }/services/${ provider }/${ version }/${ kind }/${ request_metadata.uuid }`, {
         spec: request_spec,
         metadata: {
             spec_version: request_metadata.spec_version
         }
-    }, { headers: { "Authorization": `Bearer ${ s2skey }`, "Papiea-Version": `${ PAPIEA_VERSION }` } });
+    }, {headers});
+    span.finish()
     return watcher
 }
 
-async function get_entity(provider: string, kind: string, version: string, entity_reference: Entity_Reference, papiea_url: string, s2skey: string): Promise<Entity> {
+async function get_entity(provider: string, kind: string, version: string, entity_reference: Entity_Reference, papiea_url: string, s2skey: string, tracer: Tracer): Promise<Entity> {
+    const headers = getHeaders(s2skey)
+    const span = spanOperation("get_entity_client", {headers, tracer}, {entity_uuid: entity_reference.uuid})
     const { data: { metadata, spec, status } } = await make_request(axios.get, `${ papiea_url }/services/${ provider }/${ version }/${ kind }/${ entity_reference.uuid }`,
-        { headers: { "Authorization": `Bearer ${ s2skey }`, "Papiea-Version": `${ PAPIEA_VERSION }` } });
+        {headers});
+    span.finish()
     return { metadata, spec, status }
 }
 
-async function delete_entity(provider: string, kind: string, version: string, entity_reference: Entity_Reference, papiea_url: string, s2skey: string): Promise<void> {
-    await make_request(axios.delete, `${ papiea_url }/services/${ provider }/${ version }/${ kind }/${ entity_reference.uuid }`, { headers: { "Authorization": `Bearer ${ s2skey }`, "Papiea-Version": `${ PAPIEA_VERSION }` } });
+async function delete_entity(provider: string, kind: string, version: string, entity_reference: Entity_Reference, papiea_url: string, s2skey: string, tracer: Tracer): Promise<void> {
+    const headers = getHeaders(s2skey)
+    const span = spanOperation("delete_entity_client", {headers, tracer}, {entity_uuid: entity_reference.uuid})
+    await make_request(axios.delete, `${ papiea_url }/services/${ provider }/${ version }/${ kind }/${ entity_reference.uuid }`, {headers});
+    span.finish()
 }
 
-async function invoke_entity_procedure(provider: string, kind: string, version: string, procedure_name: string, input: any, entity_reference: Entity_Reference, papiea_url: string, s2skey: string): Promise<any> {
-    const res = await make_request(axios.post, `${ papiea_url }/services/${ provider }/${ version }/${ kind }/${ entity_reference.uuid }/procedure/${ procedure_name }`, { input }, { headers: { "Authorization": `Bearer ${ s2skey }`, "Papiea-Version": `${ PAPIEA_VERSION }` } });
+async function invoke_entity_procedure(provider: string, kind: string, version: string, procedure_name: string, input: any, entity_reference: Entity_Reference, papiea_url: string, s2skey: string, tracer: Tracer): Promise<any> {
+    const headers = getHeaders(s2skey)
+    const span = spanOperation(`${procedure_name}_entity_procedure_client`, {headers, tracer}, {entity_uuid: entity_reference.uuid})
+    const res = await make_request(axios.post, `${ papiea_url }/services/${ provider }/${ version }/${ kind }/${ entity_reference.uuid }/procedure/${ procedure_name }`, { input }, {headers});
+    span.finish()
     return res.data;
 }
 
-async function invoke_kind_procedure(provider: string, kind: string, version: string, procedure_name: string, input: any, papiea_url: string, s2skey: string): Promise<any> {
-    const res = await make_request(axios.post, `${ papiea_url }/services/${ provider }/${ version }/${ kind }/procedure/${ procedure_name }`, { input }, { headers: { "Authorization": `Bearer ${ s2skey }`, "Papiea-Version": `${ PAPIEA_VERSION }` } });
+async function invoke_kind_procedure(provider: string, kind: string, version: string, procedure_name: string, input: any, papiea_url: string, s2skey: string, tracer: Tracer): Promise<any> {
+    const headers = getHeaders(s2skey)
+    const span = spanOperation(`${procedure_name}_kind_procedure_client`, {headers, tracer})
+    const res = await make_request(axios.post, `${ papiea_url }/services/${ provider }/${ version }/${ kind }/procedure/${ procedure_name }`, { input }, {headers});
+    span.finish()
     return res.data;
 }
 
-export async function invoke_provider_procedure(provider: string, version: string, procedure_name: string, input: any, papiea_url: string, s2skey: string): Promise<any> {
-    const res = await make_request(axios.post, `${ papiea_url }/services/${ provider }/${ version }/procedure/${ procedure_name }`, { input }, { headers: { "Authorization": `Bearer ${ s2skey }`, "Papiea-Version": `${ PAPIEA_VERSION }` } });
+export async function invoke_provider_procedure(provider: string, version: string, procedure_name: string, input: any, papiea_url: string, s2skey: string, tracer: Tracer): Promise<any> {
+    const headers = getHeaders(s2skey)
+    const span = spanOperation(`${procedure_name}_provider_procedure_client`, {headers, tracer})
+    const res = await make_request(axios.post, `${ papiea_url }/services/${ provider }/${ version }/procedure/${ procedure_name }`, { input }, {headers});
+    span.finish()
     return res.data;
 }
 
@@ -110,13 +137,16 @@ export interface FilterResults {
     results: Entity[]
 }
 
-export async function filter_entity_iter(provider: string, kind: string, version: string, filter: any, papiea_url: string, s2skey: string): Promise<(batch_size?: number, offset?: number) => AsyncGenerator<any, undefined, any>> {
+export async function filter_entity_iter(provider: string, kind: string, version: string, filter: any, papiea_url: string, s2skey: string, tracer: Tracer): Promise<(batch_size?: number, offset?: number) => AsyncGenerator<any, undefined, any>> {
     const iter_func = await make_request(iter_filter, `${ papiea_url }/services/${ provider }/${ version }/${ kind }/filter`, filter, { headers: { "Authorization": `Bearer ${ s2skey }`, "Papiea-Version": `${ PAPIEA_VERSION }` } });
     return iter_func
 }
 
-export async function filter_entity(provider: string, kind: string, version: string, filter: any, papiea_url: string, s2skey: string): Promise<FilterResults> {
-    const res = await make_request(axios.post, `${ papiea_url }/services/${ provider }/${ version }/${ kind }/filter`, filter, { headers: { "Authorization": `Bearer ${ s2skey }`, "Papiea-Version": `${ PAPIEA_VERSION }` } });
+export async function filter_entity(provider: string, kind: string, version: string, filter: any, papiea_url: string, s2skey: string, tracer: Tracer): Promise<FilterResults> {
+    const headers = getHeaders(s2skey)
+    const span = spanOperation("filter_entity_client", {headers, tracer})
+    const res = await make_request(axios.post, `${ papiea_url }/services/${ provider }/${ version }/${ kind }/filter`, filter, {headers});
+    span.finish()
     return res.data
 }
 
@@ -136,22 +166,27 @@ export async function iter_filter(url: string, data: any, config?: AxiosRequestC
     })
 }
 
-async function get_intent_watcher(papiea_url: string, id: string, s2skey: string): Promise<IntentWatcher> {
+async function get_intent_watcher(papiea_url: string, id: string, s2skey: string, tracer: Tracer): Promise<IntentWatcher> {
+    const headers = getHeaders(s2skey)
+    const span = spanOperation(`get_intent_watcher_client`, {headers, tracer})
     const res = await make_request(axios.get, `${ papiea_url }/services/intent_watcher/${ id }`,
-        { headers: { "Authorization": `Bearer ${ s2skey }` }, "Papiea-Version": `${ PAPIEA_VERSION }` });
+        {headers});
+    span.finish()
     return res.data
 }
 
-// filter_intent_watcher({'status':'Pending'})
-async function filter_intent_watcher(papiea_url: string, filter: any, s2skey: string): Promise<FilterResults> {
-    const res = await make_request(axios.post, `${ papiea_url }/services/intent_watcher/filter`, filter, { headers: { "Authorization": `Bearer ${ s2skey }`, "Papiea-Version": `${ PAPIEA_VERSION }` } });
+async function filter_intent_watcher(papiea_url: string, filter: any, s2skey: string, tracer: Tracer): Promise<FilterResults> {
+    const headers = getHeaders(s2skey)
+    const span = spanOperation(`filter_intent_watcher_client`, {headers, tracer})
+    const res = await make_request(axios.post, `${ papiea_url }/services/intent_watcher/filter`, filter, {headers});
+    span.finish()
     return res.data
 }
 
-async function wait_for_watcher_status(papiea_url: string, s2skey: string, watcher_ref: IntentWatcher, watcher_status: IntentfulStatus, timeout_secs: number, delay_millis: number): Promise<boolean> {
+async function wait_for_watcher_status(papiea_url: string, s2skey: string, watcher_ref: IntentWatcher, watcher_status: IntentfulStatus, timeout_secs: number, delay_millis: number, tracer: Tracer): Promise<boolean> {
     const start_time: number = new Date().getTime()
     while (true) {
-        const watcher = await get_intent_watcher(papiea_url, watcher_ref.uuid, s2skey)
+        const watcher = await get_intent_watcher(papiea_url, watcher_ref.uuid, s2skey, tracer)
         if (watcher.status == watcher_status) {
             return true;
         }
@@ -168,13 +203,17 @@ export interface ProviderClient {
     get_kind(kind: string): EntityCRUD
 
     invoke_procedure(procedure_name: string, input: any): Promise<any>
+
+    close(): void
 }
 
-export function provider_client(papiea_url: string, provider: string, version: string, s2skey?: string, meta_extension?: (s2skey: string) => any): ProviderClient {
+export function provider_client(papiea_url: string, provider: string, version: string, s2skey?: string, tracer?: Tracer): ProviderClient {
+    const client_tracer = tracer ?? getTracer("papiea-client")
     const the_s2skey = s2skey ?? 'anonymous'
     return {
-        get_kind: (kind: string) => kind_client(papiea_url, provider, kind, version, the_s2skey, meta_extension),
-        invoke_procedure: (proc_name: string, input: any) => invoke_provider_procedure(provider, version, proc_name, input, papiea_url, the_s2skey)
+        get_kind: (kind: string) => kind_client(papiea_url, provider, kind, version, the_s2skey),
+        invoke_procedure: (proc_name: string, input: any) => invoke_provider_procedure(provider, version, proc_name, input, papiea_url, the_s2skey, client_tracer),
+        close: () => (client_tracer as any).close()
     }
 }
 
@@ -197,20 +236,24 @@ export interface EntityCRUD {
     invoke_procedure(procedure_name: string, entity_reference: Entity_Reference, input: any): Promise<any>
 
     invoke_kind_procedure(procedure_name: string, input: any): Promise<any>
+
+    close(): void
 }
 
-export function kind_client(papiea_url: string, provider: string, kind: string, version: string, s2skey?: string, meta_extension?: (s2skey: string) => any): EntityCRUD {
+export function kind_client(papiea_url: string, provider: string, kind: string, version: string, s2skey?: string, tracer?: Tracer): EntityCRUD {
+    const client_tracer = tracer ?? getTracer("papiea-client")
     const the_s2skey = s2skey ?? 'anonymous'
     const crudder: EntityCRUD = {
-        get: (entity_reference: Entity_Reference) => get_entity(provider, kind, version, entity_reference, papiea_url, the_s2skey),
-        create: (payload: any) => create_entity(provider, kind, version, payload, papiea_url, the_s2skey),
-        update: (metadata: Metadata, spec: Spec) => update_entity(provider, kind, version, spec, metadata, papiea_url, the_s2skey),
-        delete: (entity_reference: Entity_Reference) => delete_entity(provider, kind, version, entity_reference, papiea_url, the_s2skey),
-        filter: (filter: any) => filter_entity(provider, kind, version, filter, papiea_url, the_s2skey),
-        filter_iter: (filter: any) => filter_entity_iter(provider, kind, version, filter, papiea_url, the_s2skey),
-        list_iter: () => filter_entity_iter(provider, kind, version, {}, papiea_url, the_s2skey),
-        invoke_procedure: (proc_name: string, entity_reference: Entity_Reference, input: any) => invoke_entity_procedure(provider, kind, version, proc_name, input, entity_reference, papiea_url, the_s2skey),
-        invoke_kind_procedure: (proc_name: string, input: any) => invoke_kind_procedure(provider, kind, version, proc_name, input, papiea_url, the_s2skey)
+        get: (entity_reference: Entity_Reference) => get_entity(provider, kind, version, entity_reference, papiea_url, the_s2skey, client_tracer),
+        create: (payload: any) => create_entity(provider, kind, version, payload, papiea_url, the_s2skey, client_tracer),
+        update: (metadata: Metadata, spec: Spec) => update_entity(provider, kind, version, spec, metadata, papiea_url, the_s2skey, client_tracer),
+        delete: (entity_reference: Entity_Reference) => delete_entity(provider, kind, version, entity_reference, papiea_url, the_s2skey, client_tracer),
+        filter: (filter: any) => filter_entity(provider, kind, version, filter, papiea_url, the_s2skey, client_tracer),
+        filter_iter: (filter: any) => filter_entity_iter(provider, kind, version, filter, papiea_url, the_s2skey, client_tracer),
+        list_iter: () => filter_entity_iter(provider, kind, version, {}, papiea_url, the_s2skey, client_tracer),
+        invoke_procedure: (proc_name: string, entity_reference: Entity_Reference, input: any) => invoke_entity_procedure(provider, kind, version, proc_name, input, entity_reference, papiea_url, the_s2skey, client_tracer),
+        invoke_kind_procedure: (proc_name: string, input: any) => invoke_kind_procedure(provider, kind, version, proc_name, input, papiea_url, the_s2skey, client_tracer),
+        close: () => (client_tracer as any).close()
     }
     return crudder
 }
@@ -223,15 +266,19 @@ export interface IntentWatcherClient {
     filter_iter(filter: any): Promise<FilterResults>
 
     wait_for_status_change(watcher_ref: any, watcher_status: IntentfulStatus, timeout_secs?: number, delay_millis?: number): Promise<boolean>
+
+    close(): void
 }
 
-export function intent_watcher_client(papiea_url: string, s2skey?: string): IntentWatcherClient {
+export function intent_watcher_client(papiea_url: string, s2skey?: string, tracer?: Tracer): IntentWatcherClient {
+    const client_tracer = tracer ?? getTracer("papiea-client")
     const the_s2skey = s2skey ?? 'anonymous'
     const intent_watcher: IntentWatcherClient = {
-        get: (id: string) => get_intent_watcher(papiea_url, id, the_s2skey),
-        list_iter: () => filter_intent_watcher(papiea_url, "", the_s2skey),
-        filter_iter: (filter: any) => filter_intent_watcher(papiea_url, filter, the_s2skey),
-        wait_for_status_change: (watcher_ref: any, watcher_status: IntentfulStatus, timeout_secs: number = 50, delay_millis: number = 500) => wait_for_watcher_status(papiea_url, the_s2skey, watcher_ref, watcher_status, timeout_secs, delay_millis)
+        get: (id: string) => get_intent_watcher(papiea_url, id, the_s2skey, client_tracer),
+        list_iter: () => filter_intent_watcher(papiea_url, "", the_s2skey, client_tracer),
+        filter_iter: (filter: any) => filter_intent_watcher(papiea_url, filter, the_s2skey, client_tracer),
+        wait_for_status_change: (watcher_ref: any, watcher_status: IntentfulStatus, timeout_secs: number = 50, delay_millis: number = 500) => wait_for_watcher_status(papiea_url, the_s2skey, watcher_ref, watcher_status, timeout_secs, delay_millis, client_tracer),
+        close: () => (client_tracer as any).close()
     }
     return intent_watcher
 }

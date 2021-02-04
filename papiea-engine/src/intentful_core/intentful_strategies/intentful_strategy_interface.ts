@@ -8,6 +8,7 @@ import { Graveyard_DB } from "../../databases/graveyard_db_interface"
 import {
     GraveyardConflictingEntityError
 } from "../../databases/utils/errors"
+import {RequestContext, spanOperation} from "papiea-backend-utils"
 
 export abstract class IntentfulStrategy {
     protected readonly specDb: Spec_DB
@@ -42,21 +43,25 @@ export abstract class IntentfulStrategy {
         await this.graveyardDb.dispose(entity)
     }
 
-    async update(metadata: Metadata, spec: Spec): Promise<IntentWatcher | null> {
+    async update(metadata: Metadata, spec: Spec, ctx: RequestContext): Promise<IntentWatcher | null> {
         await this.update_entity(metadata, spec)
         return null
     }
 
-    protected async invoke_destructor(procedure_name: string, entity: Partial<Entity>): Promise<void> {
+    protected async invoke_destructor(procedure_name: string, entity: Partial<Entity>, ctx: RequestContext): Promise<void> {
         if (this.kind) {
             if (this.kind.kind_procedures[procedure_name]) {
                 if (this.user === undefined) {
                     throw OnActionError.create("User not specified", procedure_name, this.kind.name)
                 }
                 try {
+                    const span = spanOperation(`destructor`,
+                                               ctx.tracing_ctx,
+                                               {entity_uuid: entity.metadata?.uuid})
                     const { data } =  await axios.post(this.kind.kind_procedures[procedure_name].procedure_callback, {
                         input: entity
                     }, { headers: this.user })
+                    span.finish()
                     return data
                 } catch (e) {
                     throw OnActionError.create(e.response.data.message, procedure_name, this.kind.name)
@@ -75,8 +80,12 @@ export abstract class IntentfulStrategy {
         this.user = user
     }
 
-    async delete(entity: Entity): Promise<void> {
-        await this.invoke_destructor(`__${entity.metadata.kind}_delete`, { metadata: entity.metadata })
-        return this.delete_entity(entity)
+    async delete(entity: Entity, ctx: RequestContext): Promise<void> {
+        await this.invoke_destructor(`__${entity.metadata.kind}_delete`, { metadata: entity.metadata }, ctx)
+        const span = spanOperation(`delete_entity_db`,
+                                   ctx.tracing_ctx,
+                                   {entity_uuid: entity.metadata.uuid})
+        await this.delete_entity(entity)
+        span.finish()
     }
 }

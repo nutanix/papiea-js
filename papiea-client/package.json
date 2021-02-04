@@ -1,7 +1,7 @@
 {
   "name": "papiea-client",
   "description": "",
-  "version": "0.9.10+1845",
+  "version": "0.9.17+1928",
   "main": "build/entity_client.js",
   "scripts": {
     "clean": "rm -rf build",
@@ -12,6 +12,8 @@
   "license": "ISC",
   "dependencies": {
     "axios": "^0.18.1",
+    "opentracing": "^0.14.5",
+    "papiea-backend-utils": "file:../papiea-backend-utils",
     "papiea-core": "file:../papiea-core"
   },
   "devDependencies": {

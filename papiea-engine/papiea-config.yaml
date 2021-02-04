@@ -1,1 +1,2 @@
 debug: true
+diff_retry_exponent: 1.3

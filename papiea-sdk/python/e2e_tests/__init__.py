@@ -1,11 +1,14 @@
 import logging
 import os
+from typing import Optional
 
+from opentracing import Tracer
 from yaml import Loader as YamlLoader
 from yaml import load as load_yaml
 
 from papiea.client import EntityCRUD
 from papiea.core import AttributeDict
+from papiea.tracing_utils import init_default_tracer
 
 SERVER_PORT = int(os.environ.get("SERVER_PORT", "3000"))
 PAPIEA_ADMIN_S2S_KEY = os.environ.get("PAPIEA_ADMIN_S2S_KEY", "")
@@ -31,9 +34,12 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 
-get_client = lambda kind : EntityCRUD(
-    PAPIEA_URL, PROVIDER_PREFIX, PROVIDER_VERSION, kind, USER_S2S_KEY
-)
+
+def get_client(kind: str, tracer: Tracer = init_default_tracer()):
+    return EntityCRUD(
+        PAPIEA_URL, PROVIDER_PREFIX, PROVIDER_VERSION, kind, USER_S2S_KEY, tracer=tracer
+    )
+
 
 def load_yaml_from_file(filename):
     try:
@@ -41,6 +47,7 @@ def load_yaml_from_file(filename):
             return load_yaml(f, Loader=YamlLoader)
     except:
         raise
+
 
 def ref_type(kind: str, description: str = '') -> AttributeDict:
     return AttributeDict(
