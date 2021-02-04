@@ -1,3 +1,4 @@
+- Version 0.9.16+1924: Reduced diff retry backoff exponent for debugging purposes (#594) PR url: git@github.com:nutanix/papiea.git/pull/594
 - Version 0.9.15+1918: Papiea client is dependent on backend-utils, capture it
 - Version 0.9.14+1909: Swallowing stacktrace is bad for debugging
 - Version 0.9.13+1906: Swallowing stacktrace is bad for debugging
