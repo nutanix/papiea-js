@@ -1,3 +1,4 @@
+- Version 0.9.18+1933: Removed requirement for input field in the procedures input (#592) PR url: git@github.com:nutanix/papiea.git/pull/592
 - Version 0.9.17+1928: fix api docs problem (#614) PR url: git@github.com:nutanix/papiea.git/pull/614
 - Version 0.9.16+1924: Reduced diff retry backoff exponent for debugging purposes (#594) PR url: git@github.com:nutanix/papiea.git/pull/594
 - Version 0.9.15+1918: Papiea client is dependent on backend-utils, capture it
