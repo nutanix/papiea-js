@@ -320,7 +320,45 @@ describe("Intentful Workflow tests single provider", () => {
                 }
             })
             await timeout(18000)
-            expect(times_requested).toBeLessThanOrEqual(4)
+            expect(times_requested).toBeLessThanOrEqual(5)
+        } finally {
+            sdk.cleanup();
+        }
+    })
+
+    test("Exponential backoff should be activated using the exponent value set for kind", async () => {
+        expect.assertions(1);
+        const sdk = ProviderSdk.create_provider(papieaUrl, adminKey, server_config.host, server_config.port);
+        try {
+            let times_requested = 0
+            first_provider_prefix = "location_provider_exponential_backoff_kind_exponent"
+            const location = sdk.new_kind(locationDataDescription);
+            sdk.version(provider_version);
+            sdk.prefix(first_provider_prefix);
+            location.on("x", async (ctx, entity, input) => {
+                times_requested++
+            })
+            location.diff_retry_exponent(1.5)
+            await sdk.register();
+            const kind_name = sdk.provider.kinds[0].name;
+            const { data: { metadata, spec } } = await entityApi.post(`${ sdk.entity_url }/${ sdk.provider.prefix }/${ sdk.provider.version }/${ kind_name }`, {
+                spec: {
+                    x: 10,
+                    y: 11
+                }
+            })
+            first_provider_to_delete_entites.push(metadata)
+            await entityApi.put(`/${ sdk.provider.prefix }/${ sdk.provider.version }/${ kind_name }/${ metadata.uuid }`, {
+                spec: {
+                    x: 30,
+                    y: 11
+                },
+                metadata: {
+                    spec_version: 1
+                }
+            })
+            await timeout(18000)
+            expect(times_requested).toBeLessThanOrEqual(5)
         } finally {
             sdk.cleanup()
         }

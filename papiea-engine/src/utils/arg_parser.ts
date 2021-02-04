@@ -20,6 +20,7 @@ const TRANSFORM_FN_MAP: { [key in keyof PapieaConfig]: (val: any) => PapieaConfi
     entity_poll_delay: toNum,
     intent_resolve_delay: toNum,
     diff_resolve_delay: toNum,
+    diff_retry_exponent: toNum,
     debug: toBool,
     public_addr: toStr,
     mongo_url: toStr,
@@ -69,6 +70,9 @@ export interface PapieaConfig {
     // Delay for rediffing watcher entities in milliseconds
     diff_resolve_delay: number
 
+    // Exponent value for the diff retry logic backoff calculation
+    diff_retry_exponent: number
+
     // Config options for logging verbosity
     logging_verbosity: LoggingVerbosityOptions,
 
@@ -88,6 +92,7 @@ const PAPIEA_DEFAULT_CFG: PapieaConfig = {
     entity_poll_delay: 250,
     intent_resolve_delay: 3000,
     diff_resolve_delay: 1500,
+    diff_retry_exponent: 1.3,
     logging_verbosity: {
         verbose: false,
         fields: []

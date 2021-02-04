@@ -186,6 +186,9 @@ export interface Kind {
     // The default delay for rediffing
     diff_delay?: number;
 
+    // The default exponent value used in calculate backoff function
+    diff_retry_exponent?: number;
+
     // Strategy which determines how next diff is going to be chosen
     diff_selection_strategy?: DiffSelectionStrategy
 

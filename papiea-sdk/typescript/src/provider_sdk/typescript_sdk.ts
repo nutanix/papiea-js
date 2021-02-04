@@ -623,6 +623,11 @@ export class Kind_Builder {
         this.kind_procedure(name, {}, handler)
         return this
     }
+
+    diff_retry_exponent(diff_retry_exponent?: number): Kind_Builder {
+        this.kind.diff_retry_exponent = diff_retry_exponent
+        return this;
+    }
 }
 
 export {Version, Kind, Procedural_Signature, Provider, Data_Description, Procedural_Execution_Strategy, Entity, ProceduralCtx_Interface, Provider_Power, IntentfulCtx_Interface, UserInfo, S2S_Key, SecurityApi, ProcedureDescription}
