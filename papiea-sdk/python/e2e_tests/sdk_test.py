@@ -32,7 +32,7 @@ class TestEntityOperations:
             async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
                 bucket1_name = "test-bucket1"
 
-                bucket_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", bucket1_name)
+                bucket_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", { "bucket_name": bucket1_name })
                 bucket1_entity = await bucket_entity_client.get(bucket_ref)
 
                 assert bucket1_entity.spec.name == bucket1_name
@@ -60,13 +60,13 @@ class TestEntityOperations:
             async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
                 bucket1_name = "test-bucket1"
 
-                bucket_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", bucket1_name)
+                bucket_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", { "bucket_name": bucket1_name })
                 bucket1_entity = await bucket_entity_client.get(bucket_ref)
 
                 assert bucket1_entity.spec.name == bucket1_name
                 assert len(bucket1_entity.spec.objects) == 0
 
-                bucket_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", bucket1_name)
+                bucket_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", { "bucket_name": bucket1_name })
                 bucket1_entity = await bucket_entity_client.get(bucket_ref)
 
                 assert bucket1_entity.spec.name == bucket1_name
@@ -94,7 +94,7 @@ class TestEntityOperations:
             async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
                 bucket1_name = "test-bucket1"
 
-                bucket_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", bucket1_name)
+                bucket_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", { "bucket_name": bucket1_name })
                 bucket1_entity = await bucket_entity_client.get(bucket_ref)
 
                 assert bucket1_entity.spec.name == bucket1_name
@@ -102,7 +102,7 @@ class TestEntityOperations:
 
                 object1_name = "test-object1"
 
-                object_ref = await bucket_entity_client.invoke_procedure("create_object", bucket1_entity.metadata, object1_name)
+                object_ref = await bucket_entity_client.invoke_procedure("create_object", bucket1_entity.metadata, { "object_name": object1_name })
                 async with papiea_test.get_client(papiea_test.OBJECT_KIND) as object_entity_client:
                     b1_object1_entity = await object_entity_client.get(object_ref)
 
@@ -135,7 +135,7 @@ class TestEntityOperations:
             async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
                 bucket1_name = "test-bucket1"
 
-                bucket_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", bucket1_name)
+                bucket_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", { "bucket_name": bucket1_name })
                 bucket1_entity = await bucket_entity_client.get(bucket_ref)
 
                 assert bucket1_entity.spec.name == bucket1_name
@@ -143,13 +143,13 @@ class TestEntityOperations:
 
                 object1_name = "test-object1"
 
-                object_ref = await bucket_entity_client.invoke_procedure("create_object", bucket1_entity.metadata, object1_name)
+                object_ref = await bucket_entity_client.invoke_procedure("create_object", bucket1_entity.metadata, { "object_name": object1_name })
                 async with papiea_test.get_client(papiea_test.OBJECT_KIND) as object_entity_client:
                     b1_object1_entity = await object_entity_client.get(object_ref)
 
                 assert b1_object1_entity.spec.content == ""
 
-                await bucket_entity_client.invoke_procedure("create_object", bucket1_entity.metadata, object1_name)
+                await bucket_entity_client.invoke_procedure("create_object", bucket1_entity.metadata, { "object_name": object1_name })
         except Exception as ex:
             papiea_test.logger.debug("Failed to perform entity operation : " + str(ex))
             assert str(ex) == "Object already exists in the bucket"
@@ -177,10 +177,10 @@ class TestEntityOperations:
                 bucket1_name = "test-bucket1"
                 bucket2_name = "test-bucket2"
 
-                bucket1_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", bucket1_name)
+                bucket1_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", { "bucket_name": bucket1_name })
                 bucket1_entity = await bucket_entity_client.get(bucket1_ref)
 
-                bucket2_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", bucket2_name)
+                bucket2_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", { "bucket_name": bucket2_name })
                 bucket2_entity = await bucket_entity_client.get(bucket2_ref)
 
                 assert bucket1_entity.spec.name == bucket1_name
@@ -191,7 +191,7 @@ class TestEntityOperations:
                 object1_name = "test-object1"
                 object2_name = "test-object2"
 
-                object_ref = await bucket_entity_client.invoke_procedure("create_object", bucket1_entity.metadata, object1_name)
+                object_ref = await bucket_entity_client.invoke_procedure("create_object", bucket1_entity.metadata, { "object_name": object1_name })
                 async with papiea_test.get_client(papiea_test.OBJECT_KIND) as object_entity_client:
                     b1_object1_entity = await object_entity_client.get(object_ref)
 
@@ -239,10 +239,10 @@ class TestEntityOperations:
                 bucket1_name = "test-bucket1"
                 bucket2_name = "test-bucket2"
 
-                bucket1_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", bucket1_name)
+                bucket1_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", { "bucket_name": bucket1_name })
                 bucket1_entity = await bucket_entity_client.get(bucket1_ref)
 
-                bucket2_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", bucket2_name)
+                bucket2_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", { "bucket_name": bucket2_name })
                 bucket2_entity = await bucket_entity_client.get(bucket2_ref)
 
                 assert bucket1_entity.spec.name == bucket1_name
@@ -252,7 +252,7 @@ class TestEntityOperations:
 
                 object1_name = "test-object1"
 
-                object_ref = await bucket_entity_client.invoke_procedure("create_object", bucket1_entity.metadata, object1_name)
+                object_ref = await bucket_entity_client.invoke_procedure("create_object", bucket1_entity.metadata, { "object_name": object1_name })
                 async with papiea_test.get_client(papiea_test.OBJECT_KIND) as object_entity_client:
                     b1_object1_entity = await object_entity_client.get(object_ref)
 
@@ -299,7 +299,7 @@ class TestEntityOperations:
             async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
                 bucket1_name = "test-bucket1"
 
-                bucket_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", bucket1_name)
+                bucket_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", { "bucket_name": bucket1_name })
                 bucket1_entity = await bucket_entity_client.get(bucket_ref)
 
                 assert bucket1_entity.spec.name == bucket1_name
@@ -308,7 +308,7 @@ class TestEntityOperations:
                 object1_name = "test-object1"
                 object2_name = "test-object2"
 
-                object_ref = await bucket_entity_client.invoke_procedure("create_object", bucket1_entity.metadata, object1_name)
+                object_ref = await bucket_entity_client.invoke_procedure("create_object", bucket1_entity.metadata, { "object_name": object1_name })
                 async with papiea_test.get_client(papiea_test.OBJECT_KIND) as object_entity_client:
                     b1_object1_entity = await object_entity_client.get(object_ref)
 
@@ -355,7 +355,7 @@ class TestEntityOperations:
             async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
                 bucket1_name = "test-bucket1"
 
-                bucket_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", bucket1_name)
+                bucket_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", { "bucket_name": bucket1_name })
                 bucket1_entity = await bucket_entity_client.get(bucket_ref)
 
                 assert bucket1_entity.spec.name == bucket1_name
@@ -363,7 +363,7 @@ class TestEntityOperations:
 
                 object1_name = "test-object1"
 
-                object_ref = await bucket_entity_client.invoke_procedure("create_object", bucket1_entity.metadata, object1_name)
+                object_ref = await bucket_entity_client.invoke_procedure("create_object", bucket1_entity.metadata, { "object_name": object1_name })
                 async with papiea_test.get_client(papiea_test.OBJECT_KIND) as object_entity_client:
                     b1_object1_entity = await object_entity_client.get(object_ref)
 
@@ -406,10 +406,10 @@ class TestEntityOperations:
                 bucket1_name = "test-bucket1"
                 bucket2_name = "test-bucket2"
 
-                bucket1_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", bucket1_name)
+                bucket1_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", { "bucket_name": bucket1_name })
                 bucket1_entity = await bucket_entity_client.get(bucket1_ref)
 
-                bucket2_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", bucket2_name)
+                bucket2_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", { "bucket_name": bucket2_name })
                 bucket2_entity = await bucket_entity_client.get(bucket2_ref)
 
                 assert bucket1_entity.spec.name == bucket1_name
@@ -420,7 +420,7 @@ class TestEntityOperations:
                 object1_name = "test-object1"
                 object2_name = "test-object2"
 
-                object_ref = await bucket_entity_client.invoke_procedure("create_object", bucket1_entity.metadata, object1_name)
+                object_ref = await bucket_entity_client.invoke_procedure("create_object", bucket1_entity.metadata, { "object_name": object1_name })
                 async with papiea_test.get_client(papiea_test.OBJECT_KIND) as object_entity_client:
                     b1_object1_entity = await object_entity_client.get(object_ref)
 
@@ -431,7 +431,7 @@ class TestEntityOperations:
                 assert bucket1_entity.spec.objects[0].reference.uuid == b1_object1_entity.metadata.uuid
                 assert b1_object1_entity.spec.content == ""
 
-                object_ref = await bucket_entity_client.invoke_procedure("create_object", bucket2_entity.metadata, object2_name)
+                object_ref = await bucket_entity_client.invoke_procedure("create_object", bucket2_entity.metadata, { "object_name": object2_name })
                 async with papiea_test.get_client(papiea_test.OBJECT_KIND) as object_entity_client:
                     b2_object2_entity = await object_entity_client.get(object_ref)
 
@@ -473,7 +473,7 @@ class TestEntityOperations:
             async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
                 bucket1_name = "test-bucket1"
 
-                bucket_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", bucket1_name)
+                bucket_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", { "bucket_name": bucket1_name })
                 bucket1_entity = await bucket_entity_client.get(bucket_ref)
 
                 assert bucket1_entity.spec.name == bucket1_name
@@ -512,7 +512,7 @@ class TestEntityOperations:
             async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
                 bucket1_name = "test-bucket1"
 
-                bucket_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", bucket1_name)
+                bucket_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", { "bucket_name": bucket1_name })
                 bucket1_entity = await bucket_entity_client.get(bucket_ref)
 
                 assert bucket1_entity.spec.name == bucket1_name
@@ -521,7 +521,7 @@ class TestEntityOperations:
                 object1_name = "test-object1"
                 object2_name = "test-object2"
 
-                object_ref = await bucket_entity_client.invoke_procedure("create_object", bucket1_entity.metadata, object1_name)
+                object_ref = await bucket_entity_client.invoke_procedure("create_object", bucket1_entity.metadata, { "object_name": object1_name })
                 async with papiea_test.get_client(papiea_test.OBJECT_KIND) as object_entity_client:
                     b1_object1_entity = await object_entity_client.get(object_ref)
 
@@ -546,7 +546,7 @@ class TestEntityOperations:
                 assert bucket1_entity.spec.objects[0].name == object1_name
                 assert bucket1_entity.spec.objects[0].reference.uuid == b1_object1_entity.metadata.uuid
 
-                bucket_ref = await bucket_entity_client.invoke_procedure("unlink_object", bucket1_entity.metadata, object2_name)
+                bucket_ref = await bucket_entity_client.invoke_procedure("unlink_object", bucket1_entity.metadata, { "object_name": object2_name })
                 bucket1_entity = await bucket_entity_client.get(bucket_ref)
 
                 assert len(bucket1_entity.spec.objects) == 1
@@ -575,7 +575,7 @@ class TestEntityOperations:
             async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
                 bucket1_name = "test-bucket1"
 
-                bucket_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", bucket1_name)
+                bucket_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", { "bucket_name": bucket1_name })
                 bucket1_entity = await bucket_entity_client.get(bucket_ref)
 
                 assert bucket1_entity.spec.name == bucket1_name
@@ -583,7 +583,7 @@ class TestEntityOperations:
 
                 object1_name = "test-object1"
 
-                object_ref = await bucket_entity_client.invoke_procedure("create_object", bucket1_entity.metadata, object1_name)
+                object_ref = await bucket_entity_client.invoke_procedure("create_object", bucket1_entity.metadata, { "object_name": object1_name })
                 async with papiea_test.get_client(papiea_test.OBJECT_KIND) as object_entity_client:
                     b1_object1_entity = await object_entity_client.get(object_ref)
 
@@ -594,7 +594,7 @@ class TestEntityOperations:
                 assert bucket1_entity.spec.objects[0].reference.uuid == b1_object1_entity.metadata.uuid
                 assert b1_object1_entity.spec.content == ""
 
-                bucket_ref = await bucket_entity_client.invoke_procedure("unlink_object", bucket1_entity.metadata, object1_name)
+                bucket_ref = await bucket_entity_client.invoke_procedure("unlink_object", bucket1_entity.metadata, { "object_name": object1_name })
                 bucket1_entity = await bucket_entity_client.get(bucket_ref)
 
                 assert len(bucket1_entity.spec.objects) == 0
@@ -621,14 +621,14 @@ class TestEntityOperations:
             async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
                 bucket1_name = "test-bucket1"
 
-                bucket_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", bucket1_name)
+                bucket_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", { "bucket_name": bucket1_name })
                 bucket1_entity = await bucket_entity_client.get(bucket_ref)
 
                 assert bucket1_entity.spec.name == bucket1_name
                 assert len(bucket1_entity.spec.objects) == 0
 
                 object1_name = "test-object1"
-                await bucket_entity_client.invoke_procedure("unlink_object", bucket1_entity.metadata, object1_name)
+                await bucket_entity_client.invoke_procedure("unlink_object", bucket1_entity.metadata, { "object_name": object1_name })
         except Exception as ex:
             papiea_test.logger.debug("Failed to perform entity operation : " + str(ex))
             assert str(ex) == "Object not found in the bucket"
@@ -689,7 +689,7 @@ class TestEntityOperations:
             async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
                 bucket1_name = "test-bucket1"
 
-                bucket_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", bucket1_name)
+                bucket_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", { "bucket_name": bucket1_name })
                 bucket1_entity = await bucket_entity_client.get(bucket_ref)
 
                 assert bucket1_entity.spec.name == bucket1_name
@@ -697,7 +697,7 @@ class TestEntityOperations:
 
                 object1_name = "test-object1"
 
-                object_ref = await bucket_entity_client.invoke_procedure("create_object", bucket1_entity.metadata, object1_name)
+                object_ref = await bucket_entity_client.invoke_procedure("create_object", bucket1_entity.metadata, { "object_name": object1_name })
                 async with papiea_test.get_client(papiea_test.OBJECT_KIND) as object_entity_client:
                     b1_object1_entity = await object_entity_client.get(object_ref)
 
@@ -727,7 +727,7 @@ class TestEntityOperations:
                 assert b1_object1_entity.status.references[0].bucket_reference.uuid == bucket1_entity.metadata.uuid
 
                 new_bucket1_name = "new-test-bucket1"
-                await bucket_entity_client.invoke_procedure("change_bucket_name", bucket1_entity.metadata, new_bucket1_name)
+                await bucket_entity_client.invoke_procedure("change_bucket_name", bucket1_entity.metadata, { "bucket_name": new_bucket1_name })
 
                 for _ in range(1, retries+1):
                     bucket1_entity = await bucket_entity_client.get(bucket_ref)
@@ -765,7 +765,7 @@ class TestEntityOperations:
             async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
                 bucket1_name = "test-bucket1"
 
-                bucket_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", bucket1_name)
+                bucket_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", { "bucket_name": bucket1_name })
                 bucket1_entity = await bucket_entity_client.get(bucket_ref)
 
                 assert bucket1_entity.spec.name == bucket1_name
@@ -773,7 +773,7 @@ class TestEntityOperations:
 
                 object1_name = "test-object1"
 
-                object_ref = await bucket_entity_client.invoke_procedure("create_object", bucket1_entity.metadata, object1_name)
+                object_ref = await bucket_entity_client.invoke_procedure("create_object", bucket1_entity.metadata, { "object_name": object1_name })
                 async with papiea_test.get_client(papiea_test.OBJECT_KIND) as object_entity_client:
                     b1_object1_entity = await object_entity_client.get(object_ref)
 
@@ -821,7 +821,7 @@ class TestEntityOperations:
             async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
                 bucket1_name = "test-bucket1"
 
-                bucket_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", bucket1_name)
+                bucket_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", { "bucket_name": bucket1_name })
                 bucket1_entity = await bucket_entity_client.get(bucket_ref)
 
                 assert bucket1_entity.spec.name == bucket1_name
@@ -829,7 +829,7 @@ class TestEntityOperations:
 
                 object1_name = "test-object1"
 
-                object_ref = await bucket_entity_client.invoke_procedure("create_object", bucket1_entity.metadata, object1_name)
+                object_ref = await bucket_entity_client.invoke_procedure("create_object", bucket1_entity.metadata, { "object_name": object1_name })
                 async with papiea_test.get_client(papiea_test.OBJECT_KIND) as object_entity_client:
                     b1_object1_entity = await object_entity_client.get(object_ref)
 
@@ -855,7 +855,7 @@ class TestEntityOperations:
                 assert b1_object1_entity.status.references[0].object_name == object1_name
                 assert b1_object1_entity.status.references[0].bucket_reference.uuid == bucket1_entity.metadata.uuid
 
-                bucket_ref = await bucket_entity_client.invoke_procedure("unlink_object", bucket1_entity.metadata, object1_name)
+                bucket_ref = await bucket_entity_client.invoke_procedure("unlink_object", bucket1_entity.metadata, { "object_name": object1_name })
 
                 for _ in range(1, retries+1):
                     bucket1_entity = await bucket_entity_client.get(bucket_ref)
@@ -925,7 +925,7 @@ class TestEntityOperations:
             async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
                 bucket1_name = "test-bucket1"
 
-                bucket_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", bucket1_name)
+                bucket_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", { "bucket_name": bucket1_name })
                 bucket1_entity = await bucket_entity_client.get(bucket_ref)
 
                 assert bucket1_entity.spec.name == bucket1_name
@@ -933,7 +933,7 @@ class TestEntityOperations:
 
                 object1_name = "test-object1"
 
-                object_ref = await bucket_entity_client.invoke_procedure("create_object", bucket1_entity.metadata, object1_name)
+                object_ref = await bucket_entity_client.invoke_procedure("create_object", bucket1_entity.metadata, { "object_name": object1_name })
                 async with papiea_test.get_client(papiea_test.OBJECT_KIND) as object_entity_client:
                     b1_object1_entity = await object_entity_client.get(object_ref)
 

@@ -61,7 +61,7 @@ describe("Procedures tests", () => {
                 });
                 req.on('end', function () {
                     const post = JSON.parse(body);
-                    post.spec.x += post.input;
+                    post.spec.x += post.input.x;
                     entityApi.put(`/${provider.prefix}/${provider.version}/${kind_name}/${post.metadata.uuid}`, {
                         spec: post.spec,
                         metadata: post.metadata
@@ -85,7 +85,7 @@ describe("Procedures tests", () => {
                 y: 11
             }
         });
-        const res: any = await entityApi.post(`/${provider.prefix}/${provider.version}/${kind_name}/${metadata.uuid}/procedure/moveX`, { input: 5 });
+        const res: any = await entityApi.post(`/${provider.prefix}/${provider.version}/${kind_name}/${metadata.uuid}/procedure/moveX`, { x: 5 });
         const updatedEntity: any = await entityApi.get(`/${provider.prefix}/${provider.version}/${kind_name}/${metadata.uuid}`);
         expect(updatedEntity.data.metadata.spec_version).toEqual(2);
         expect(updatedEntity.data.spec.x).toEqual(15);
@@ -99,7 +99,7 @@ describe("Procedures tests", () => {
             }
         });
         try {
-            await entityApi.post(`/${provider.prefix}/${provider.version}/${kind_name}/${metadata.uuid}/procedure/moveX`, { input: "5" });
+            await entityApi.post(`/${provider.prefix}/${provider.version}/${kind_name}/${metadata.uuid}/procedure/moveX`, { x: "5" });
         } catch (err) {
             const res = err.response;
             expect(res.status).toEqual(400);
@@ -121,7 +121,7 @@ describe("Procedures tests", () => {
             const res = err.response;
             expect(res.status).toEqual(400);
             expect(res.data.error.errors.length).toEqual(1);
-            expect(res.data.error.errors[0].message.includes("undefined")).toBeTruthy();
+            expect(res.data.error.errors[0].message).toBe("moveX with schema MoveInput was expecting non-empty input");
         }
     });
     test("Procedure result validation", async () => {
@@ -148,7 +148,7 @@ describe("Procedures tests", () => {
             }
         });
         try {
-            await entityApi.post(`/${provider.prefix}/${provider.version}/${kind_name}/${metadata.uuid}/procedure/moveX`, { input: 5 });
+            await entityApi.post(`/${provider.prefix}/${provider.version}/${kind_name}/${metadata.uuid}/procedure/moveX`, { x: 5 });
         } catch (err) {
             const res = err.response;
             expect(res.status).toEqual(500);
@@ -182,10 +182,8 @@ describe("Procedures tests", () => {
             providerApiTestLogger.info(`Server running at http://${hostname}:${port}/`);
         });
         const res: any = await entityApi.post(`/${ provider.prefix }/${ provider.version }/procedure/computeSum`, {
-            input: {
-                "a": 5,
-                "b": 5
-            }
+            "a": 5,
+            "b": 5
         });
         expect(res.data).toBe(10);
 
@@ -213,7 +211,7 @@ describe("Procedures tests", () => {
             providerApiTestLogger.info(`Server running at http://${hostname}:${port}/`);
         });
         try {
-            const res: any = await entityApi.post(`/${provider.prefix}/${provider.version}/procedure/computeSum`, { input: { "a": 10, "b": "Totally not a number" } });
+            const res: any = await entityApi.post(`/${provider.prefix}/${provider.version}/procedure/computeSum`, { "a": 10, "b": "Totally not a number" });
         } catch (e) {
             expect(e.response.status).toBe(400);
             server.close();
@@ -231,10 +229,10 @@ describe("Procedures tests", () => {
                 req.on('end', function () {
                     const post = JSON.parse(body);
                     let initial_cluster_location = "us.west.";
-                    initial_cluster_location += post.input;
+                    initial_cluster_location += post.input.region_id;
                     res.statusCode = 200;
                     res.setHeader('Content-Type', 'text/plain');
-                    res.end(JSON.stringify(initial_cluster_location));
+                    res.end(JSON.stringify({ "region_id": initial_cluster_location }));
                     server.close();
                 });
             }
@@ -242,8 +240,8 @@ describe("Procedures tests", () => {
         server.listen(port, hostname, () => {
             providerApiTestLogger.info(`Server running at http://${hostname}:${port}/`);
         });
-        const res: any = await entityApi.post(`/${provider.prefix}/${provider.version}/${kind_name}/procedure/computeGeolocation`, { input: "2" });
-        expect(res.data).toBe("us.west.2");
+        const res: any = await entityApi.post(`/${provider.prefix}/${provider.version}/${kind_name}/procedure/computeGeolocation`, { region_id: "2" });
+        expect(res.data.region_id).toBe("us.west.2");
     });
 
     test("Call kind level procedure with non-valid params fails validation", async () => {
@@ -269,7 +267,7 @@ describe("Procedures tests", () => {
             providerApiTestLogger.info(`Server running at http://${hostname}:${port}/`);
         });
         try {
-            const res: any = await entityApi.post(`/${provider.prefix}/${provider.version}/${kind_name}/procedure/computeGeolocation`, { input: ["String expected got array"] });
+            const res: any = await entityApi.post(`/${provider.prefix}/${provider.version}/${kind_name}/procedure/computeGeolocation`, { region_id: ["String expected got array"] });
         } catch (e) {
             expect(e.response.status).toBe(400);
             server.close();

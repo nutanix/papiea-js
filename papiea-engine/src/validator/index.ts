@@ -274,10 +274,21 @@ export class ValidatorImpl {
             }
         }
         if (model !== undefined && model !== null) {
-            // Model has fields but none of those are required
-            if (modelIsNullable(model) && (data === null || isEmpty(data))) {
-                return {valid: true}
+            if (data === null || isEmpty(data)) {
+                if (modelIsNullable(model)) {
+                    // Model has fields but none of those are required
+                    return {valid: true}
+                } else {
+                    // Model has required fields expecting non-empty input
+                    throw new ValidationError([{
+                        name: "Error",
+                        message: procedureName !== undefined
+                            ? `${procedureName} with schema ${schemaName} was expecting non-empty input`
+                            : `${schemaName} was expecting non-empty input`
+                    }])
+                }
             }
+
             const res = this.validator.validate(data, model, models, allowBlankTarget, validatorDenyExtraProps);
             if (!res.valid) {
                 throw new ValidationError(res.errors);

@@ -10,8 +10,7 @@ import {Version} from "papiea-core"
 import {RequestContext} from "papiea-backend-utils"
 
 const CheckProcedureCallParams = check_request({
-    allowed_query_params: [],
-    allowed_body_params: ['input']
+    allowed_query_params: []
 });
 
 interface PaginatedResult {
@@ -185,17 +184,17 @@ export function createEntityAPIRouter(entity_api: Entity_API, trace: Function): 
     }));
 
     router.post("/:prefix/:version/:kind/:uuid/procedure/:procedure_name", CheckProcedureCallParams, trace("entity_procedure"), asyncHandler(async (req, res) => {
-        const result: any = await entity_api.call_procedure(req.user, req.params.prefix, req.params.kind, req.params.version, req.params.uuid, req.params.procedure_name, req.body.input, res.locals.ctx);
+        const result: any = await entity_api.call_procedure(req.user, req.params.prefix, req.params.kind, req.params.version, req.params.uuid, req.params.procedure_name, req.body, res.locals.ctx);
         res.json(result);
     }));
 
     router.post("/:prefix/:version/:kind/procedure/:procedure_name", CheckProcedureCallParams, trace("kind_procedure"), asyncHandler(async (req, res) => {
-        const result: any = await entity_api.call_kind_procedure(req.user, req.params.prefix, req.params.kind, req.params.version, req.params.procedure_name, req.body.input, res.locals.ctx);
+        const result: any = await entity_api.call_kind_procedure(req.user, req.params.prefix, req.params.kind, req.params.version, req.params.procedure_name, req.body, res.locals.ctx);
         res.json(result);
     }));
 
     router.post("/:prefix/:version/procedure/:procedure_name", CheckProcedureCallParams, trace("provider_procedure"), asyncHandler(async (req, res) => {
-        const result: any = await entity_api.call_provider_procedure(req.user, req.params.prefix, req.params.version, req.params.procedure_name, req.body.input, res.locals.ctx);
+        const result: any = await entity_api.call_provider_procedure(req.user, req.params.prefix, req.params.version, req.params.procedure_name, req.body, res.locals.ctx);
         res.json(result);
     }));
 

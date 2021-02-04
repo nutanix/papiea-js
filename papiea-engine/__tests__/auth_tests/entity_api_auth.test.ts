@@ -407,7 +407,7 @@ describe("Entity API auth tests", () => {
         await providerApiAdmin.post(`/${ provider.prefix }/${ provider.version }/auth`, {
             policy: `p, alice, owner, ${ kind_name }, *, allow`
         });
-        await entityApi.post(`/${ provider.prefix }/${ provider.version }/${ kind_name }/${ entity_metadata.uuid }/procedure/moveX`, { input: 5 },
+        await entityApi.post(`/${ provider.prefix }/${ provider.version }/${ kind_name }/${ entity_metadata.uuid }/procedure/moveX`, { x: 5 },
                              { headers: { 'Authorization': 'Bearer ' + token } }
         );
         expect(headers['tenant']).toEqual(tenant_uuid);
@@ -516,7 +516,7 @@ describe("Entity API auth tests", () => {
             { headers: { 'Authorization': 'Bearer ' + token } }
         );
 
-        await entityApi.post(`/${ provider.prefix }/${ provider.version }/${ kind_name }/${ entity_metadata.uuid }/procedure/moveX`, { input: 5 },
+        await entityApi.post(`/${ provider.prefix }/${ provider.version }/${ kind_name }/${ entity_metadata.uuid }/procedure/moveX`, { x: 5 },
             { headers: { 'Authorization': 'Bearer ' + s2skey.key } }
         );
         expect(headers['authorization']).toBe(`Bearer ${s2skey.key}`);
@@ -563,7 +563,7 @@ describe("Entity API auth tests", () => {
             await providerApiAdmin.post(`/${provider.prefix}/${provider.version}/auth`, {
                 policy: `p, alice, owner, ${kind_name}, read, allow`
             });
-            await entityApi.post(`/${provider.prefix}/${provider.version}/${kind_name}/${entity_metadata.uuid}/procedure/moveX`, { input: 5 },
+            await entityApi.post(`/${provider.prefix}/${provider.version}/${kind_name}/${entity_metadata.uuid}/procedure/moveX`, { x: 5 },
                 { headers: { 'Authorization': 'Bearer ' + token } }
             );
             throw new Error("Call procedure without permission should fail");
@@ -604,7 +604,7 @@ describe("Entity API auth tests", () => {
         await providerApiAdmin.post(`/${ provider.prefix }/${ provider.version }/auth`, {
             policy: `p, alice, owner, ${ kind_name }, read, allow`
         });
-        await entityApi.post(`/${ provider.prefix }/${ provider.version }/${ kind_name }/${ entity_metadata.uuid }/procedure/moveX`, { input: 5 },
+        await entityApi.post(`/${ provider.prefix }/${ provider.version }/${ kind_name }/${ entity_metadata.uuid }/procedure/moveX`, { x: 5 },
             { headers: { 'Authorization': 'Bearer ' + token } }
         );
     });
@@ -620,7 +620,7 @@ describe("Entity API auth tests", () => {
                     const post = JSON.parse(body);
                     res.statusCode = 200;
                     res.setHeader('Content-Type', 'text/plain');
-                    res.end(JSON.stringify(post.spec));
+                    res.end(JSON.stringify(post.input));
                     server.close();
                 });
             }
@@ -632,7 +632,7 @@ describe("Entity API auth tests", () => {
         await providerApiAdmin.post(`/${provider.prefix}/${provider.version}/auth`, {
             policy: `p, alice, owner, ${kind_name}, *, allow`
         });
-        await entityApi.post(`/${provider.prefix}/${provider.version}/${kind_name}/procedure/computeGeolocation`, { input: "5" },
+        await entityApi.post(`/${provider.prefix}/${provider.version}/${kind_name}/procedure/computeGeolocation`, { region_id: "5" },
             { headers: { 'Authorization': 'Bearer ' + token } }
         );
     });
@@ -648,7 +648,7 @@ describe("Entity API auth tests", () => {
                     const post = JSON.parse(body);
                     res.statusCode = 200;
                     res.setHeader('Content-Type', 'text/plain');
-                    res.end(JSON.stringify(post.spec));
+                    res.end(JSON.stringify(post.input));
                     server.close();
                 });
             }
@@ -667,7 +667,7 @@ describe("Entity API auth tests", () => {
                 }
             }
         );
-        await entityApi.post(`/${ provider.prefix }/${ provider.version }/${ kind_name }/procedure/computeGeolocation`, { input: "2" },
+        await entityApi.post(`/${ provider.prefix }/${ provider.version }/${ kind_name }/procedure/computeGeolocation`, { region_id: "2" },
             { headers: { 'Authorization': 'Bearer ' + s2skey.key } }
         );
     });
@@ -697,10 +697,8 @@ describe("Entity API auth tests", () => {
             policy: `p, alice, owner, ${kind_name}, *, allow`
         });
         await entityApi.post(`/${ provider.prefix }/${ provider.version }/procedure/computeSum`, {
-            input: {
-                "a": 5,
-                "b": 5
-            }
+            "a": 5,
+            "b": 5
         },
             { headers: { 'Authorization': 'Bearer ' + token } }
         );
@@ -738,10 +736,8 @@ describe("Entity API auth tests", () => {
             }
         );
         await entityApi.post(`/${ provider.prefix }/${ provider.version }/procedure/computeSum`, {
-                input: {
-                    "a": 5,
-                    "b": 5
-                }
+                "a": 5,
+                "b": 5
             },
             { headers: { 'Authorization': 'Bearer ' + s2skey.key } }
         );
@@ -761,7 +757,7 @@ describe("Entity API auth tests", () => {
                     }
                 }
             );
-            await entityApi.post(`/${provider.prefix}/${provider.version}/${kind_name}/procedure/computeGeolocation`, { input: "5" },
+            await entityApi.post(`/${provider.prefix}/${provider.version}/${kind_name}/procedure/computeGeolocation`, { region_id: "5" },
                 { headers: { 'Authorization': 'Bearer ' + s2skey.key } }
             );
             throw new Error("Call procedure without permission should fail");

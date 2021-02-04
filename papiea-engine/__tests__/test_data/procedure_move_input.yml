@@ -1,4 +1,9 @@
 MoveInput:
-  type: number
-  title: Input value to move functions
-  description: The amount to move in a particular direction
+  type: object
+  title: Input object to the move function
+  description: The x field contains the move in a particular direction
+  required:
+    - x
+  properties:
+    x:
+        type: number

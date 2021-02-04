@@ -197,12 +197,12 @@ describe("Provider Sdk tests", () => {
                 {input_schema: loadYamlFromTestFactoryDir("./test_data/procedure_move_input.yml"),
                  output_schema: loadYamlFromTestFactoryDir("./test_data/location_kind_test_data.yml")},
                 async (ctx, entity, input) => {
-                entity.spec.x += input;
-                await axios.put(ctx.url_for(entity), {
-                    spec: entity.spec,
-                    metadata: entity.metadata
-                });
-                return entity.spec;
+                    entity.spec.x += input.x;
+                    await axios.put(ctx.url_for(entity), {
+                        spec: entity.spec,
+                        metadata: entity.metadata
+                    });
+                    return entity.spec;
             });
             await sdk.register();
             const kind_name = sdk.provider.kinds[0].name;
@@ -213,12 +213,82 @@ describe("Provider Sdk tests", () => {
                 }
             });
 
-            const res: any = await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/${kind_name}/${metadata.uuid}/procedure/moveX`, { input: 5 });
+            const res: any = await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/${kind_name}/${metadata.uuid}/procedure/moveX`, { x: 5 });
             const updatedEntity: any = await axios.get(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/${kind_name}/${metadata.uuid}`);
             expect(updatedEntity.data.metadata.spec_version).toEqual(2);
             expect(updatedEntity.data.spec.x).toEqual(15);
         } finally {
             sdk.cleanup()
+        }
+    });
+    test("Invalid string input to the entity procedure should throw an error", async () => {
+        expect.assertions(1);
+        const sdk = ProviderSdk.create_provider(papieaUrl, adminKey, server_config.host, server_config.port);
+        try {
+            const location = sdk.new_kind(location_yaml);
+            sdk.version(provider_version);
+            sdk.prefix("location_provider");
+            location.entity_procedure(
+                "moveX",
+                {input_schema: loadYamlFromTestFactoryDir("./test_data/procedure_move_input.yml"),
+                 output_schema: loadYamlFromTestFactoryDir("./test_data/location_kind_test_data.yml")},
+                async (ctx, entity, input) => {
+                    entity.spec.x += input.x;
+                    await axios.put(ctx.url_for(entity), {
+                        spec: entity.spec,
+                        metadata: entity.metadata
+                    });
+                    return entity.spec;
+            });
+            await sdk.register();
+            const kind_name = sdk.provider.kinds[0].name;
+            const { data: { metadata, spec } } = await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/${kind_name}`, {
+                spec: {
+                    x: 10,
+                    y: 11
+                }
+            });
+
+            await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/${kind_name}/${metadata.uuid}/procedure/moveX`, "5");
+        } catch (err) {
+            expect(err.response.data.error.errors[0].message).toContain("moveX with schema MoveInput was expecting non-empty input")
+        } finally {
+            sdk.cleanup();
+        }
+    });
+    test("Invalid numeric input to the entity procedure should throw an error", async () => {
+        expect.assertions(1);
+        const sdk = ProviderSdk.create_provider(papieaUrl, adminKey, server_config.host, server_config.port);
+        try {
+            const location = sdk.new_kind(location_yaml);
+            sdk.version(provider_version);
+            sdk.prefix("location_provider");
+            location.entity_procedure(
+                "moveX",
+                {input_schema: loadYamlFromTestFactoryDir("./test_data/procedure_move_input.yml"),
+                 output_schema: loadYamlFromTestFactoryDir("./test_data/location_kind_test_data.yml")},
+                async (ctx, entity, input) => {
+                    entity.spec.x += input.x;
+                    await axios.put(ctx.url_for(entity), {
+                        spec: entity.spec,
+                        metadata: entity.metadata
+                    });
+                    return entity.spec;
+            });
+            await sdk.register();
+            const kind_name = sdk.provider.kinds[0].name;
+            const { data: { metadata, spec } } = await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/${kind_name}`, {
+                spec: {
+                    x: 10,
+                    y: 11
+                }
+            });
+
+            await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/${kind_name}/${metadata.uuid}/procedure/moveX`, 5);
+        } catch (err) {
+            expect(err).toBeDefined()
+        } finally {
+            sdk.cleanup();
         }
     });
     test("Malformed handler registered on sdk should fail", async () => {
@@ -246,7 +316,7 @@ describe("Provider Sdk tests", () => {
                 }
             });
             try {
-                const res: any = await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/${kind_name}/${metadata.uuid}/procedure/moveX`, { input: 5 });
+                const res: any = await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/${kind_name}/${metadata.uuid}/procedure/moveX`, { x: 5 });
             } catch (e) {
                 expect(e).toBeDefined();
             }
@@ -328,7 +398,7 @@ describe("Provider Sdk tests", () => {
             {input_schema: loadYamlFromTestFactoryDir("./test_data/procedure_move_input.yml"),
             output_schema: loadYamlFromTestFactoryDir("./test_data/location_kind_test_data.yml")},
             async (ctx, entity, input) => {
-            entity.spec.x += input;
+            entity.spec.x += input.x;
             await ctx.update_status(entity.metadata, {
                 c: 15
             })
@@ -343,7 +413,7 @@ describe("Provider Sdk tests", () => {
                     y: 11
                 }
             });
-            await axios.post(`${ sdk.entity_url }/${ sdk.provider.prefix }/${ sdk.provider.version }/${ kind_name }/${ metadata.uuid }/procedure/moveX`, { input: 5 });
+            await axios.post(`${ sdk.entity_url }/${ sdk.provider.prefix }/${ sdk.provider.version }/${ kind_name }/${ metadata.uuid }/procedure/moveX`, { x: 5 });
         } catch(e) {
             expect(e).toBeDefined()
             expect(e.response.status).toEqual(400)
@@ -386,7 +456,7 @@ describe("Provider Sdk tests", () => {
                     y: 11
                 }
             });
-            await axios.post(`${ sdk.entity_url }/${ sdk.provider.prefix }/${ sdk.provider.version }/${ kind_name }/${ metadata.uuid }/procedure/moveX`, { input: 5 });
+            await axios.post(`${ sdk.entity_url }/${ sdk.provider.prefix }/${ sdk.provider.version }/${ kind_name }/${ metadata.uuid }/procedure/moveX`, { x: 5 });
             const result = await entityApi.get(`${ sdk.provider.prefix }/${ sdk.provider.version }/${ kind_name }/${ metadata.uuid }`)
             expect(result.data.status.v.e).toEqual(15)
             await entityApi.delete(`${ sdk.provider.prefix }/${ sdk.provider.version }/${ kind_name }/${ metadata.uuid }`)
@@ -426,7 +496,7 @@ describe("Provider Sdk tests", () => {
                     y: 11
                 }]
             });
-            await axios.post(`${ sdk.entity_url }/${ sdk.provider.prefix }/${ sdk.provider.version }/${ kind_name }/${ metadata.uuid }/procedure/moveX`, { input: 5 });
+            await axios.post(`${ sdk.entity_url }/${ sdk.provider.prefix }/${ sdk.provider.version }/${ kind_name }/${ metadata.uuid }/procedure/moveX`, { x: 5 });
             const result = await entityApi.get(`${ sdk.provider.prefix }/${ sdk.provider.version }/${ kind_name }/${ metadata.uuid }`)
             expect(result.data.status[0].v.e).toEqual(15)
             await entityApi.delete(`${ sdk.provider.prefix }/${ sdk.provider.version }/${ kind_name }/${ metadata.uuid }`)
@@ -469,7 +539,7 @@ describe("Provider Sdk tests", () => {
                     y: 11
                 }
             });
-            await axios.post(`${ sdk.entity_url }/${ sdk.provider.prefix }/${ sdk.provider.version }/${ kind_name }/${ metadata.uuid }/procedure/moveX`, { input: 5 });
+            await axios.post(`${ sdk.entity_url }/${ sdk.provider.prefix }/${ sdk.provider.version }/${ kind_name }/${ metadata.uuid }/procedure/moveX`, { x: 5 });
             const result = await entityApi.get(`${ sdk.provider.prefix }/${ sdk.provider.version }/${ kind_name }/${ metadata.uuid }`)
             expect(result.data.status["v"]).toEqual({e: 15})
         } finally {
@@ -511,7 +581,7 @@ describe("Provider Sdk tests", () => {
                     y: 11
                 }
             });
-            await axios.post(`${ sdk.entity_url }/${ sdk.provider.prefix }/${ sdk.provider.version }/${ kind_name }/${ metadata.uuid }/procedure/moveX`, { input: 5 });
+            await axios.post(`${ sdk.entity_url }/${ sdk.provider.prefix }/${ sdk.provider.version }/${ kind_name }/${ metadata.uuid }/procedure/moveX`, { x: 5 });
             const result = await entityApi.get(`${ sdk.provider.prefix }/${ sdk.provider.version }/${ kind_name }/${ metadata.uuid }`)
             expect(result.data.status["v"]).toEqual({e: 15})
         } finally {
@@ -552,15 +622,15 @@ describe("Provider Sdk tests", () => {
                         sample_prop: "It's an error :("
                     }])
                 }
-                cluster_location += input;
-                return cluster_location
+                cluster_location += input.region_id;
+                return { "region_id": cluster_location }
             }
         );
         await sdk.register();
         const kind_name = sdk.provider.kinds[0].name;
         try {
-            const res: any = await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/${kind_name}/procedure/computeGeolocation`, { input: "2" });
-            expect(res.data).toBe("us.west.2");
+            const res: any = await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/${kind_name}/procedure/computeGeolocation`, { region_id: "2" });
+            expect(res.data.region_id).toBe("us.west.2");
         } finally {
             sdk.cleanup()
         }
@@ -632,15 +702,15 @@ describe("Provider Sdk tests", () => {
              output_schema: loadYamlFromTestFactoryDir("./test_data/procedure_geolocation_compute_input.yml")},
             async (ctx, input) => {
                 let cluster_location = "us.west.";
-                cluster_location += input;
-                return cluster_location
+                cluster_location += input.region_id;
+                return { "region_id": cluster_location }
             }
         );
         await sdk.register();
         const kind_name = sdk.provider.kinds[0].name;
         try {
-            const res: any = await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/${kind_name}/procedure/computeGeolocation`, { input: "2" });
-            expect(res.data).toBe("us.west.2");
+            const res: any = await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/${kind_name}/procedure/computeGeolocation`, { region_id: "2" });
+            expect(res.data.region_id).toBe("us.west.2");
         } finally {
             sdk.cleanup()
         }
@@ -706,7 +776,7 @@ describe("Provider Sdk tests", () => {
         );
         await sdk.register();
         try {
-            const res: any = await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/procedure/computeSum`, { input: { "a": 5, "b": 5 } });
+            const res: any = await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/procedure/computeSum`, { "a": 5, "b": 5 });
             expect(res.data).toBe(10);
         } finally {
             sdk.cleanup()
@@ -724,7 +794,7 @@ describe("Provider Sdk tests", () => {
             {input_schema: loadYamlFromTestFactoryDir("./test_data/procedure_move_input.yml"),
              output_schema: loadYamlFromTestFactoryDir("./test_data/location_kind_test_data.yml")},
             async (ctx, entity, input) => {
-            entity.spec.x += input;
+            entity.spec.x += input.x;
             const res = await axios.put(ctx.url_for(entity), {
                 spec: entity.spec,
                 metadata: entity.metadata
@@ -741,7 +811,7 @@ describe("Provider Sdk tests", () => {
         );
         try {
             await sdk.register();
-            const res: any = await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/procedure/computeSum`, { input: { "a": 5, "b": 5 } });
+            const res: any = await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/procedure/computeSum`, { "a": 5, "b": 5 });
         } catch (e) {
             expect(e.response.data.error.errors[0].message).toBe("Unable to validate a model with a type: string, expected: number");
             expect(e.response.data.error.errors[0].stacktrace).not.toBeUndefined();
@@ -764,7 +834,7 @@ describe("Provider Sdk tests", () => {
         );
         try {
             await sdk.register();
-            const res: any = await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/procedure/computeSumWithNoValidation`, { input: {} });
+            const res: any = await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/procedure/computeSumWithNoValidation`, {});
         } finally {
             sdk.cleanup()
         }
@@ -784,7 +854,7 @@ describe("Provider Sdk tests", () => {
         );
         try {
             await sdk.register();
-            const res: any = await axios.post(`${ sdk.entity_url }/${ sdk.provider.prefix }/${ sdk.provider.version }/procedure/computeSumWithEmptyInput`, { input: {} });
+            const res: any = await axios.post(`${ sdk.entity_url }/${ sdk.provider.prefix }/${ sdk.provider.version }/procedure/computeSumWithEmptyInput`, {});
         } finally {
             sdk.cleanup()
         }
@@ -804,30 +874,89 @@ describe("Provider Sdk tests", () => {
         );
         try {
             await sdk.register();
-            const res: any = await axios.post(`${ sdk.entity_url }/${ sdk.provider.prefix }/${ sdk.provider.version }/procedure/computeSumWithEmptyInput`, { input: {} });
+            const res: any = await axios.post(`${ sdk.entity_url }/${ sdk.provider.prefix }/${ sdk.provider.version }/procedure/computeSumWithEmptyInput`, {});
         } finally {
             sdk.cleanup()
         }
     });
 
-    test("Papiea should fail validation if input param is undefined instead of empty object", async () => {
-        expect.assertions(1)
+    test("Papiea should correctly validate if input schema is undefined and no input is sent", async() => {
         const sdk = ProviderSdk.create_provider(papieaUrl, adminKey, server_config.host, server_config.port);
         const location = sdk.new_kind(location_yaml);
-        const input_args = {type: 'object', properties: {}}
-        sdk.version(provider_version);
-        sdk.prefix("location_provider_empty_input_fail");
+        sdk.version(provider_version)
+        sdk.prefix("location_provider_undefined_input_schema_no_input")
         sdk.provider_procedure(
-            "computeSumWithEmptyInput",
-            {input_schema: {input: input_args}},
+            "computeSumWithNoInput",
+            {},
             async (ctx, input) => {
             }
         );
         try {
             await sdk.register();
-            const res: any = await axios.post(`${ sdk.entity_url }/${ sdk.provider.prefix }/${ sdk.provider.version }/procedure/computeSumWithEmptyInput`, { input: undefined });
+            await axios.post(`${ sdk.entity_url }/${ sdk.provider.prefix }/${ sdk.provider.version }/procedure/computeSumWithNoInput`);
+        } finally {
+            sdk.cleanup();
+        }
+    });
+
+    test("Papiea should fail validation if input schema is undefined and input value is set", async() => {
+        expect.assertions(1)
+        const sdk = ProviderSdk.create_provider(papieaUrl, adminKey, server_config.host, server_config.port);
+        const location = sdk.new_kind(location_yaml);
+        sdk.version(provider_version)
+        sdk.prefix("location_provider_undefined_input_schema_input")
+        sdk.provider_procedure(
+            "computeSumWithInput",
+            {},
+            async (ctx, input) => {
+            }
+        );
+        try {
+            await sdk.register();
+            await axios.post(`${ sdk.entity_url }/${ sdk.provider.prefix }/${ sdk.provider.version }/procedure/computeSumWithInput`, {'key': 'value'});
         } catch(e) {
-            expect(e.response.data.error.errors[0].message).toBe("computeSumWithEmptyInput with schema input was expecting empty object")
+            expect(e.response.data.error.errors[0].message).toBe("computeSumWithInput with schema undefined was expecting type void")
+        } finally {
+            sdk.cleanup();
+        }
+    });
+
+    test("Papiea should correctly validate if input schema is null and no input is sent", async() => {
+        const sdk = ProviderSdk.create_provider(papieaUrl, adminKey, server_config.host, server_config.port);
+        const location = sdk.new_kind(location_yaml);
+        sdk.version(provider_version)
+        sdk.prefix("location_provider_null_input_schema_no_input")
+        sdk.provider_procedure(
+            "computeSumWithNoInput",
+            {input_schema: null},
+            async (ctx, input) => {
+            }
+        );
+        try {
+            await sdk.register();
+            await axios.post(`${ sdk.entity_url }/${ sdk.provider.prefix }/${ sdk.provider.version }/procedure/computeSumWithNoInput`);
+        } finally {
+            sdk.cleanup();
+        }
+    });
+
+    test("Papiea should fail validation if input schema is null and input value is set", async() => {
+        expect.assertions(1)
+        const sdk = ProviderSdk.create_provider(papieaUrl, adminKey, server_config.host, server_config.port);
+        const location = sdk.new_kind(location_yaml);
+        sdk.version(provider_version)
+        sdk.prefix("location_provider_null_input_schema_input")
+        sdk.provider_procedure(
+            "computeSumWithInput",
+            {input_schema: null},
+            async (ctx, input) => {
+            }
+        );
+        try {
+            await sdk.register();
+            await axios.post(`${ sdk.entity_url }/${ sdk.provider.prefix }/${ sdk.provider.version }/procedure/computeSumWithInput`, {'key': 'value'});
+        } catch(e) {
+            expect(e.response.data.error.errors[0].message).toBe("computeSumWithInput with schema undefined was expecting type void")
         } finally {
             sdk.cleanup()
         }
@@ -848,7 +977,7 @@ describe("Provider Sdk tests", () => {
         );
         try {
             await sdk.register();
-            const res: any = await axios.post(`${ sdk.entity_url }/${ sdk.provider.prefix }/${ sdk.provider.version }/procedure/computeSumWithEmptyOutput`, { input: {} });
+            const res: any = await axios.post(`${ sdk.entity_url }/${ sdk.provider.prefix }/${ sdk.provider.version }/procedure/computeSumWithEmptyOutput`, {});
         } catch(e) {
             expect(e.response.data.error.errors[0].message).toBe("computeSumWithEmptyOutput with schema input was expecting empty object")
         } finally {
@@ -870,7 +999,7 @@ describe("Provider Sdk tests", () => {
         );
         try {
             await sdk.register();
-            const res: any = await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/procedure/computeSumWithNoValidation`, { input: { "a": 5, "b": 5 } });
+            const res: any = await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/procedure/computeSumWithNoValidation`, { "a": 5, "b": 5 });
         } catch (e) {
             expect(e.response.data.error.errors[0].message).toBe("computeSumWithNoValidation with schema undefined was expecting type void");
         } finally {
@@ -894,7 +1023,7 @@ describe("Provider Sdk tests", () => {
         );
         try {
             await sdk.register();
-            const res: any = await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/procedure/computeSumThrowsError`, { input: { "a": 5, "b": 5 } });
+            const res: any = await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/procedure/computeSumThrowsError`, { "a": 5, "b": 5 });
         } catch (e) {
             expect(e.response.data.error.errors[0].message).toBe("My custom error");
             expect(e.response.data.error.errors[0].stacktrace).not.toBeUndefined();
@@ -921,7 +1050,7 @@ describe("Provider Sdk tests", () => {
         );
         try {
             await sdk.register();
-            const res: any = await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/procedure/computeSumThrowsError`, { input: { "a": 5, "b": 5 } });
+            const res: any = await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/procedure/computeSumThrowsError`, { "a": 5, "b": 5 });
         } catch (e) {
             expect(e.response.data.error.errors[0].message).toBe("Cannot set property 'x' of undefined");
             expect(e.response.data.error.errors[0].stacktrace).not.toBeUndefined();
@@ -961,15 +1090,14 @@ describe("Provider Sdk tests", () => {
             sdk.prefix("test_provider");
             machine.entity_procedure(
                 "testProcedure",
-                {input_schema: {TestProcedureInput: {type: 'string', title: 'Input value to test procedure'}},
+                {input_schema: {TestProcedureInput: {type: 'object', title: 'Input value to test procedure', required: ['b_id'], properties: {b_id: {type: 'string'}}}},
                  output_schema: NULL_TEST_SCHEMA},
                 async (ctx, entity, input) => {
 
                 const real_ref = {
                     a_id: '1',
-                    b_id: input
+                    b_id: input.b_id
                 }
-
                 await ctx.update_status(entity.metadata, {provider_ref: null})
                 await ctx.update_status(entity.metadata, {provider_ref: real_ref})
 
@@ -987,7 +1115,7 @@ describe("Provider Sdk tests", () => {
                 }
             });
 
-            const res: any = await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/${kind_name}/${metadata.uuid}/procedure/testProcedure`, {input: '2'});
+            const res: any = await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/${kind_name}/${metadata.uuid}/procedure/testProcedure`, {b_id: '2'});
             const updatedEntity: any = await axios.get(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/${kind_name}/${metadata.uuid}`);
             expect(updatedEntity.data.status.provider_ref.a_id).toEqual('1')
             expect(updatedEntity.data.status.provider_ref.b_id).toEqual('2')
@@ -1407,7 +1535,7 @@ describe("SDK + oauth provider tests", () => {
         const { data: { token } } = await providerApi.get(`/${provider.prefix}/${provider.version}/auth/login`);
         try {
             await sdk.register();
-            const res: any = await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/procedure/computeWithPermissionCheck`, { input: { "a": 5, "b": 5 } },
+            const res: any = await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/procedure/computeWithPermissionCheck`, { "a": 5, "b": 5 },
                 { headers: { 'Authorization': `Bearer ${token}` }});
         } finally {
             sdk.cleanup()
@@ -1438,7 +1566,7 @@ describe("SDK + oauth provider tests", () => {
         });
         try {
             await sdk.register();
-            const res: any = await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/procedure/computeWithPermissionCheck`, { input: { "a": 5, "b": 5 } },
+            const res: any = await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/procedure/computeWithPermissionCheck`, { "a": 5, "b": 5 },
                 { headers: { 'Authorization': `Bearer ${token}` }});
         } finally {
             sdk.cleanup()
@@ -1469,7 +1597,7 @@ describe("SDK + oauth provider tests", () => {
         });
         try {
             await sdk.register();
-            const res: any = await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/procedure/computeWithPermissionCheck`, { input: { "a": 5, "b": 5 } },
+            const res: any = await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/procedure/computeWithPermissionCheck`, { "a": 5, "b": 5 },
                 { headers: { 'Authorization': `Bearer ${token}` }});
         } finally {
             sdk.cleanup()
@@ -1500,7 +1628,7 @@ describe("SDK + oauth provider tests", () => {
         });
         try {
             await sdk.register();
-            const res: any = await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/procedure/computeWithPermissionCheck`, { input: { "a": 5, "b": 5 } },
+            const res: any = await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/procedure/computeWithPermissionCheck`, { "a": 5, "b": 5 },
                 { headers: { 'Authorization': `Bearer ${token}` }});
         } finally {
             sdk.cleanup()
@@ -1531,7 +1659,7 @@ describe("SDK + oauth provider tests", () => {
         const { data: { token } } = await providerApi.get(`/${provider.prefix}/${provider.version}/auth/login`);
         try {
             await sdk.register();
-            const res: any = await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/procedure/computeWithPermissionCheck`, { input: { "a": 5, "b": 5 } },
+            const res: any = await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/procedure/computeWithPermissionCheck`, { "a": 5, "b": 5 },
                 { headers: { 'Authorization': `Bearer ${token}` }});
         } finally {
             sdk.cleanup()
@@ -1562,7 +1690,7 @@ describe("SDK + oauth provider tests", () => {
         const { data: { token } } = await providerApi.get(`/${provider.prefix}/${provider.version}/auth/login`);
         try {
             await sdk.register();
-            const res: any = await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/procedure/computeWithPermissionCheck`, { input: { "a": 5, "b": 5 } },
+            const res: any = await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/procedure/computeWithPermissionCheck`, { "a": 5, "b": 5 },
                 { headers: { 'Authorization': `Bearer ${token}` }});
         } finally {
             sdk.cleanup()
@@ -1593,7 +1721,7 @@ describe("SDK + oauth provider tests", () => {
         const { data: { token } } = await providerApi.get(`/${provider.prefix}/${provider.version}/auth/login`);
         try {
             await sdk.register();
-            const res: any = await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/procedure/computeWithPermissionCheck`, { input: { "a": 5, "b": 5 } },
+            const res: any = await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/procedure/computeWithPermissionCheck`, { "a": 5, "b": 5 },
                 { headers: { 'Authorization': `Bearer ${token}` }});
         } finally {
             sdk.cleanup()
@@ -1627,7 +1755,7 @@ describe("SDK + oauth provider tests", () => {
         const { data: { token } } = await providerApi.get(`/${provider.prefix}/${provider.version}/auth/login`);
         try {
             await sdk.register();
-            const res: any = await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/procedure/computeWithPermissionCheck`, { input: { "a": 5, "b": 5 } },
+            const res: any = await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/procedure/computeWithPermissionCheck`, { "a": 5, "b": 5 },
                 { headers: { 'Authorization': `Bearer ${token}` }});
         } finally {
             sdk.cleanup()
@@ -1661,7 +1789,7 @@ describe("SDK + oauth provider tests", () => {
         const { data: { token } } = await providerApi.get(`/${provider.prefix}/${provider.version}/auth/login`);
         try {
             await sdk.register();
-            const res: any = await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/procedure/computeWithPermissionCheck`, { input: { "a": 5, "b": 5 } },
+            const res: any = await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/procedure/computeWithPermissionCheck`, { "a": 5, "b": 5 },
                 { headers: { 'Authorization': `Bearer ${token}` }});
         } finally {
             sdk.cleanup()
@@ -1695,7 +1823,7 @@ describe("SDK + oauth provider tests", () => {
         const { data: { token } } = await providerApi.get(`/${provider.prefix}/${provider.version}/auth/login`);
         try {
             await sdk.register();
-            const res: any = await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/procedure/computeWithPermissionCheck`, { input: { "a": 5, "b": 5 } },
+            const res: any = await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/procedure/computeWithPermissionCheck`, { "a": 5, "b": 5 },
                 { headers: { 'Authorization': `Bearer ${token}` }});
         } finally {
             sdk.cleanup()
@@ -1729,7 +1857,7 @@ describe("SDK + oauth provider tests", () => {
         const { data: { token } } = await providerApi.get(`/${provider.prefix}/${provider.version}/auth/login`);
         try {
             await sdk.register();
-            const res: any = await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/procedure/computeWithPermissionCheck`, { input: { "a": 5, "b": 5 } },
+            const res: any = await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/procedure/computeWithPermissionCheck`, { "a": 5, "b": 5 },
                 { headers: { 'Authorization': `Bearer ${token}` }});
         } finally {
             sdk.cleanup()
@@ -1765,7 +1893,7 @@ describe("SDK + oauth provider tests", () => {
         const { data: { token } } = await providerApi.get(`/${provider.prefix}/${provider.version}/auth/login`);
         try {
             await sdk.register();
-            await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/procedure/computeWithErrorMessagePropagationCheck`, { input: { "a": 5, "b": 5 } },
+            await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/procedure/computeWithErrorMessagePropagationCheck`, { "a": 5, "b": 5 },
                 { headers: { 'Authorization': `Bearer ${token}` }});
         } catch (e) {
             expect(e.response.data.error.errors[0].errors[0].message).toEqual('provider_prefix should not be specified in the request body')
@@ -2438,7 +2566,7 @@ describe("SDK client tests", () => {
         );
         try {
             await sdk.register();
-            const res: any = await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/procedure/compute`, { input: { "a": 5, "b": 5 } })
+            const res: any = await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/procedure/compute`, { "a": 5, "b": 5 })
         } finally {
             sdk.cleanup()
         }
@@ -2465,17 +2593,17 @@ describe("SDK client tests", () => {
                 }})
                 uuid = entity_spec.metadata.uuid
                 let cluster_location = "us.west.";
-                cluster_location += input;
+                cluster_location += input.region_id;
                 kind_client.close()
                 client.close()
-                return cluster_location
+                return { "region_id": cluster_location }
             }
         );
         await sdk.register();
         const kind_name = sdk.provider.kinds[0].name;
         try {
-            const res: any = await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/${kind_name}/procedure/computeGeolocation`, { input: "2" });
-            expect(res.data).toBe("us.west.2");
+            const res: any = await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/${kind_name}/procedure/computeGeolocation`, { region_id: "2" });
+            expect(res.data.region_id).toBe("us.west.2");
             const entity_created = await axios.get(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/${kind_name}/${uuid}`)
             expect(entity_created.data.spec.x).toEqual(100)
         } finally {

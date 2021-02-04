@@ -107,7 +107,7 @@ class EntityCRUD(object):
     ) -> Any:
         with self.tracer.start_span(operation_name=f"invoke_{procedure_name}_procedure_client") as span:
             inject_tracing_headers(self.tracer, span, self.api_instance)
-            payload = {"input": input_}
+            payload = input_
             return await self.api_instance.post(
                 f"{entity_reference.uuid}/procedure/{procedure_name}", payload
             )
@@ -115,7 +115,7 @@ class EntityCRUD(object):
     async def invoke_kind_procedure(self, procedure_name: str, input_: Any) -> Any:
         with self.tracer.start_span(operation_name=f"invoke_{procedure_name}_kind_procedure_client") as span:
             inject_tracing_headers(self.tracer, span, self.api_instance)
-            payload = {"input": input_}
+            payload = input_
             return await self.api_instance.post(f"procedure/{procedure_name}", payload)
 
 
@@ -231,5 +231,5 @@ class ProviderClient(object):
     async def invoke_procedure(self, procedure_name: str, input: Any) -> Any:
         with self.tracer.start_span(operation_name=f"invoke_{procedure_name}_procedure_client") as span:
             inject_tracing_headers(self.tracer, span, self.api_instance)
-            payload = {"input": input}
+            payload = input
             return await self.api_instance.post(f"procedure/{procedure_name}", payload)
