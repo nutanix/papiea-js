@@ -1426,7 +1426,7 @@ describe("Provider Sdk tests", () => {
         }
     });
 
-    test("Papiea version incompatible with the supported version should fail", async () => {
+    test.only("Papiea version incompatible with the supported version should fail", async () => {
         expect.assertions(1);
         const sdk = ProviderSdk.create_provider(papieaUrl, adminKey, server_config.host, server_config.port);
         try {
@@ -2138,6 +2138,37 @@ describe("SDK callback tests", () => {
                     "Authorization": `Bearer ${adminKey}`
                 }
             })
+        } finally {
+            sdk.cleanup()
+        }
+    });
+
+    test("On create should reject request when user is not defined", async () => {
+        expect.hasAssertions();
+        const sdk = ProviderSdk.create_provider(papieaUrl, adminKey, server_config.host, server_config.port);
+        const location = sdk.new_kind(location_yaml);
+        prefix = "provider_on_create_callback_auth"
+        sdk.version(provider_version);
+        sdk.prefix(prefix);
+        location.on_create({input_schema: location_yaml}, async (ctx, input) => {
+            // Shouldn't reach
+            return {
+                spec: input,
+                status: input
+            }
+        })
+        try {
+            await sdk.register()
+            kind_name = sdk.provider.kinds[0].name
+            const {data: {metadata}} = await entityApi.post(
+                `/${prefix}/${provider_version}/${kind_name}`,
+                {
+                    x: 10,
+                    y: 11
+                }
+            )
+        } catch (e) {
+            expect(e.response.status).toEqual(401)
         } finally {
             sdk.cleanup()
         }
