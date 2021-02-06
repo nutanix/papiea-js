@@ -111,7 +111,7 @@ async function delete_entity(provider: string, kind: string, version: string, en
 async function invoke_entity_procedure(provider: string, kind: string, version: string, procedure_name: string, input: any, entity_reference: Entity_Reference, papiea_url: string, s2skey: string, tracer: Tracer): Promise<any> {
     const headers = getHeaders(s2skey)
     const span = spanOperation(`${procedure_name}_entity_procedure_client`, {headers, tracer}, {entity_uuid: entity_reference.uuid})
-    const res = await make_request(axios.post, `${ papiea_url }/services/${ provider }/${ version }/${ kind }/${ entity_reference.uuid }/procedure/${ procedure_name }`, { input }, {headers});
+    const res = await make_request(axios.post, `${ papiea_url }/services/${ provider }/${ version }/${ kind }/${ entity_reference.uuid }/procedure/${ procedure_name }`, input, {headers});
     span.finish()
     return res.data;
 }
@@ -119,7 +119,7 @@ async function invoke_entity_procedure(provider: string, kind: string, version: 
 async function invoke_kind_procedure(provider: string, kind: string, version: string, procedure_name: string, input: any, papiea_url: string, s2skey: string, tracer: Tracer): Promise<any> {
     const headers = getHeaders(s2skey)
     const span = spanOperation(`${procedure_name}_kind_procedure_client`, {headers, tracer})
-    const res = await make_request(axios.post, `${ papiea_url }/services/${ provider }/${ version }/${ kind }/procedure/${ procedure_name }`, { input }, {headers});
+    const res = await make_request(axios.post, `${ papiea_url }/services/${ provider }/${ version }/${ kind }/procedure/${ procedure_name }`, input, {headers});
     span.finish()
     return res.data;
 }
@@ -127,7 +127,7 @@ async function invoke_kind_procedure(provider: string, kind: string, version: st
 export async function invoke_provider_procedure(provider: string, version: string, procedure_name: string, input: any, papiea_url: string, s2skey: string, tracer: Tracer): Promise<any> {
     const headers = getHeaders(s2skey)
     const span = spanOperation(`${procedure_name}_provider_procedure_client`, {headers, tracer})
-    const res = await make_request(axios.post, `${ papiea_url }/services/${ provider }/${ version }/procedure/${ procedure_name }`, { input }, {headers});
+    const res = await make_request(axios.post, `${ papiea_url }/services/${ provider }/${ version }/procedure/${ procedure_name }`, input, {headers});
     span.finish()
     return res.data;
 }
