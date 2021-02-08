@@ -1,3 +1,4 @@
+- Version 0.9.22+1955: Removed input tag from the constructor procedure schema in api docs (#616) PR url: git@github.com:nutanix/papiea.git/pull/616
 - Version 0.9.21+1952: Use kind structure in sdk on_create if input schema is missing (#615) PR url: git@github.com:nutanix/papiea.git/pull/615
 - Version 0.9.20+1949: Added strict checking in validate status-only fields module in validator (#617) PR url: git@github.com:nutanix/papiea.git/pull/617
 - Version 0.9.19+1942: Modified papiea client to remove input tag from the procedures input
