@@ -16,6 +16,7 @@ import * as uuid_validate from "uuid-validate"
 import { load } from "js-yaml"
 import { readFileSync } from "fs"
 import { resolve } from "path"
+import * as _ from "lodash"
 
 // We can receive model in 2 forms:
 // As user specified in definition, which means it has "properties" field ( { properties: {} } } )
@@ -93,11 +94,11 @@ export class ValidatorImpl {
     }
 
     public validate_spec(spec: Spec, kind: Kind, allowExtraProps: boolean) {
-        const schemas: any = Object.assign({}, kind.kind_structure);
+        const schemas: any = _.cloneDeep(kind.kind_structure)
         // remove any status-only field from the schema to pass to validator
         this.remove_schema_fields(schemas, "status-only")
-        this.validate(spec, Object.values(kind.kind_structure)[0], schemas,
-            allowExtraProps, Object.keys(kind.kind_structure)[0]);
+        this.validate(spec, Object.values(schemas)[0], schemas,
+            allowExtraProps, Object.keys(schemas)[0]);
     }
 
    /**
