@@ -1289,7 +1289,7 @@ describe("Provider Sdk tests", () => {
         }
     })
 
-    test("Provider with provider level procedures should correctly handle exceptions in the provider", async () => {
+    test("Provider with required status-only field should fail in registration", async () => {
         expect.assertions(1)
         const sdk = ProviderSdk.create_provider(papieaUrl, adminKey, server_config.host, server_config.port);
         let status_only_required_schema = JSON.parse(JSON.stringify(STATUS_ONLY_TEST_SCHEMA))

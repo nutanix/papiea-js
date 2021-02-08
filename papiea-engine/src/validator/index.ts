@@ -221,33 +221,37 @@ export class ValidatorImpl {
     }
 
     validate_status_only_field(schema: Data_Description) {
-        try{
+        try {
             for(let field in schema) {
                 const field_schema = schema[field]
-                if (field_schema["type"] === "object") {
-                    if (field_schema.hasOwnProperty("required") && field_schema.hasOwnProperty("properties")) {
-                        for (let req_field of field_schema["required"]) {
-                            if (field_schema["properties"][req_field].hasOwnProperty("x-papiea") && field_schema["properties"][req_field]["x-papiea"] === "status-only") {
-                                throw new ValidationError([{
-                                    name: "ValidationError",
-                                    message: `${req_field} of type 'status-only' is set to be required. Required fields cannot be 'status-only'`
-                                }])
+                if (field_schema.hasOwnProperty("type")) {
+                    if (field_schema["type"] === "object") {
+                        if (field_schema.hasOwnProperty("required") && field_schema.hasOwnProperty("properties")) {
+                            for (let req_field of field_schema["required"]) {
+                                if (field_schema["properties"][req_field].hasOwnProperty("x-papiea") && field_schema["properties"][req_field]["x-papiea"] === "status-only") {
+                                    throw new ValidationError([{
+                                        name: "ValidationError",
+                                        message: `${req_field} of type 'status-only' is set to be required. Required fields cannot be 'status-only'`
+                                    }])
+                                }
                             }
                         }
+                        this.validate_status_only_field(field_schema["properties"])
                     }
-                    this.validate_status_only_field(field_schema["properties"])
-                }
-                if (field_schema.type === "array") {
-                    if (field_schema["items"]["type"].includes("object") && field_schema["items"].hasOwnProperty("required") && field_schema["items"].hasOwnProperty("properties")) {
-                        for (let req_field of field_schema["items"]["required"]) {
-                            if (field_schema["items"]["properties"][req_field].hasOwnProperty("x-papiea") && field_schema["items"]["properties"][req_field]["x-papiea"] === "status-only") {
-                                throw new ValidationError([{
-                                    name: "ValidationError",
-                                    message: `${req_field} of type 'status-only' is set to be required. Required fields cannot be 'status-only'`
-                                }])
+                    if (field_schema["type"] === "array") {
+                        if (field_schema.hasOwnProperty("items") && field_schema["items"].hasOwnProperty("type")) {
+                            if (field_schema["items"]["type"].includes("object") && field_schema["items"].hasOwnProperty("required") && field_schema["items"].hasOwnProperty("properties")) {
+                                for (let req_field of field_schema["items"]["required"]) {
+                                    if (field_schema["items"]["properties"][req_field].hasOwnProperty("x-papiea") && field_schema["items"]["properties"][req_field]["x-papiea"] === "status-only") {
+                                        throw new ValidationError([{
+                                            name: "ValidationError",
+                                            message: `${req_field} of type 'status-only' is set to be required. Required fields cannot be 'status-only'`
+                                        }])
+                                    }
+                                }
+                                this.validate_status_only_field(field_schema["items"]["properties"])
                             }
                         }
-                        this.validate_status_only_field(field_schema["items"]["properties"])
                     }
                 }
             }
