@@ -512,11 +512,7 @@ export default class ApiDocsGenerator {
                 "content": {
                     "application/json": {
                         "schema": {
-                            "properties": {
-                                "input": {
-                                    "$ref": `#/components/schemas/${ input }`
-                                }
-                            }
+                            "$ref": `#/components/schemas/${ input }`
                         }
                     }
                 }

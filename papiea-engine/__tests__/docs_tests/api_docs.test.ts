@@ -647,4 +647,38 @@ describe("API docs test entity", () => {
                    .content["application/json"]
                    .schema["$ref"]).toEqual(`#/components/schemas/provider_same_kind_1-0.1.0-InputTwo-Desc-InputOne`);
     });
+    test("Provider kinds with entity constructors should generate correct open api docs", async () => {
+        expect.hasAssertions();
+        const provider: Provider = new ProviderBuilder("provider_kind_with_entity_constructor")
+            .withVersion("0.1.0")
+            .withKinds()
+            .withEntityConstructor()
+            .build();
+        const providerDbMock = new Provider_DB_Mock(provider);
+        const apiDocsGenerator = new ApiDocsGenerator(providerDbMock);
+        const apiDoc = await apiDocsGenerator.getApiDocs(providerDbMock.provider);
+        const kind_name = provider.kinds[0].name;
+
+        // #/components/schemas/provider_kind_with_entity_constructor-0.1.0-object_X5FO9-__object_X5FO9_create-object_X5FO9
+        expect(apiDoc.paths[`/services/${ provider.prefix }/${ provider.version }/${ kind_name }`]
+        .post
+        .requestBody
+        .content["application/json"]
+        .schema['$ref']).toEqual(`#/components/schemas/${ provider.prefix }-${ provider.version }-${ kind_name }-__${ kind_name }_create-${ kind_name }`);
+
+        expect(apiDoc.paths[`/services/${ provider.prefix }/${ provider.version }/${ kind_name }`]
+            .post
+            .responses["200"]
+            .content["application/json"]
+            .schema["$ref"]).toEqual(`#/components/schemas/Nothing`);
+
+        expect(apiDoc.paths[`/services/${ provider.prefix }/${ provider.version }/${ kind_name }`]
+            .post
+            .responses["default"]
+            .content["application/json"]
+            .schema["$ref"]).toEqual(`#/components/schemas/Error`);
+
+        expect(apiDoc.components.schemas[`${ provider.prefix }-${ provider.version }-${ kind_name }-__${ kind_name }_create-${ kind_name }`])
+        .toEqual(provider.kinds[0].kind_structure[kind_name]);
+    });
 });

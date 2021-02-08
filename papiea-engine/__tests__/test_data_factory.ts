@@ -11,7 +11,8 @@ import {
     Procedural_Execution_Strategy,
     Procedural_Signature,
     Provider,
-    Version
+    Version,
+    Intentful_Execution_Strategy
 } from "papiea-core"
 import * as http from "http"
 import { IncomingMessage, ServerResponse } from "http"
@@ -238,6 +239,28 @@ export class ProviderBuilder {
         } else {
             this._kinds = value;
         }
+        return this;
+    }
+
+    public withEntityConstructor(value?: Procedural_Signature) {
+        if (this._kinds.length < 1) {
+            throw new Error(formatErrorMsg("Entity Procedures", "Kinds"))
+        }
+        const name = `__${ this._kinds[0].name }_create`
+        let procedural_signature: Procedural_Signature
+        if (value === undefined) {
+            procedural_signature = {
+                name,
+                argument: this._kinds[0].kind_structure,
+                result: {},
+                execution_strategy: Intentful_Execution_Strategy.Basic,
+                procedure_callback: "",
+                base_callback: ""
+            };
+        } else {
+            procedural_signature = value
+        }
+        this._kinds[0].kind_procedures[name] = procedural_signature;
         return this;
     }
 
