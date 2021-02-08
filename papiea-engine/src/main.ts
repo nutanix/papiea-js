@@ -22,16 +22,14 @@ import { S2SKeyUserAuthInfoExtractor } from "./auth/s2s";
 import { Authorizer, AdminAuthorizer, PerProviderAuthorizer, IntentWatcherAuthorizer } from "./auth/authz";
 import { ValidatorImpl } from "./validator";
 import { ProviderCasbinAuthorizerFactory } from "./auth/casbin";
-import { BadRequestError } from "./errors/bad_request_error"
 import { PapieaErrorResponseImpl } from "./errors/papiea_error_impl";
 import { SessionKeyAPI, SessionKeyUserAuthInfoExtractor } from "./auth/session_key"
 import { IntentfulContext } from "./intentful_core/intentful_context"
 import { AuditLogger } from "./audit_logging"
 import { BasicDiffer } from "./intentful_core/differ_impl"
 import { getConfig } from "./utils/arg_parser"
-import { getPapieaVersion } from "./utils/utils"
+import {getPapieaVersion, getVersionVerifier} from "./utils/utils"
 const cookieParser = require('cookie-parser');
-const semver = require('semver')
 
 process.title = "papiea"
 const config = getConfig()
@@ -79,19 +77,9 @@ async function setUpApplication(): Promise<express.Express> {
         new SessionKeyUserAuthInfoExtractor(sessionKeyApi, providerDb)
     ]);
     const enginePapieaVersion = getPapieaVersion()
-    app.use(function (req: any, res: any, next: any) {
-        const headersPapieaVersion = req.headers['papiea-version']
-        if (headersPapieaVersion) {
-            if (semver.valid(headersPapieaVersion) === null) {
-                throw new BadRequestError(`Received invalid papiea version: ${headersPapieaVersion}`)
-            }
-            if (semver.diff(headersPapieaVersion, enginePapieaVersion) === 'major') {
-                throw new BadRequestError(`Received incompatible papiea version: ${headersPapieaVersion}`)
-            }
-        }
-
-        next();
-      })
+    const papieaErrorFactory = PapieaErrorResponseImpl.create(logger)
+    const checkVersionMiddleware = getVersionVerifier(enginePapieaVersion)
+    app.use(checkVersionMiddleware)
     app.use(createAuthnRouter(logger, userAuthInfoExtractor));
     app.use(createOAuth2Router(logger, oauth2RedirectUri, providerDb, sessionKeyApi));
     app.use('/provider', createProviderAPIRouter(providerApi, trace));
@@ -101,7 +89,7 @@ async function setUpApplication(): Promise<express.Express> {
         if (res.headersSent) {
             return next(err);
         }
-        const papieaError = PapieaErrorResponseImpl.create(err);
+        const papieaError = papieaErrorFactory(err);
         res.status(papieaError.status)
         res.json(papieaError.toResponse())
         logger.error(papieaError.toString(), err.stack)

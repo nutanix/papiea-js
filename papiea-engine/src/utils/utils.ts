@@ -2,6 +2,8 @@ import { SortParams } from "../entity/entity_api_impl"
 import { ValidationError } from "../errors/validation_error"
 import { AxiosError } from "axios"
 import { Logger } from "papiea-backend-utils"
+import {BadRequestError} from "../errors/bad_request_error"
+const semver = require('semver')
 
 function validatePaginationParams(offset: number | undefined, limit: number | undefined) {
     if (offset !== undefined) {
@@ -164,4 +166,19 @@ export function getPapieaVersion(): string {
     const packageJSON = require('../../package.json');
     const engineSDKVersion: string = packageJSON.version.split('+')[0];
     return engineSDKVersion
+}
+
+export function getVersionVerifier(enginePapieaVersion: string) {
+    return (req: any, res: any, next: any) => {
+        const headersPapieaVersion = req.headers['papiea-version']
+        if (headersPapieaVersion) {
+            if (semver.valid(headersPapieaVersion) === null) {
+                throw new BadRequestError(`Received invalid papiea version: ${headersPapieaVersion}`)
+            }
+            if (semver.diff(headersPapieaVersion, enginePapieaVersion) === 'major') {
+                throw new BadRequestError(`Received incompatible papiea version: ${headersPapieaVersion}`)
+            }
+        }
+        next();
+    }
 }

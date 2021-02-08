@@ -9,8 +9,7 @@ import { IntentfulListenerMongo } from "./intentful_engine/intentful_listener_mo
 import { getCalculateBackoffFn, getEntropyFn } from "./utils/utils"
 import { getConfig } from "./utils/arg_parser"
 import {ValidatorImpl} from "./validator"
-import {Authorizer, NoAuthAuthorizer, PerProviderAuthorizer} from "./auth/authz"
-import {ProviderCasbinAuthorizerFactory} from "./auth/casbin"
+import {Authorizer, NoAuthAuthorizer} from "./auth/authz"
 
 process.title = "papiea_diff_resolver"
 const config = getConfig()

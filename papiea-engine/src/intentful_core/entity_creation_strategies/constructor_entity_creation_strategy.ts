@@ -23,6 +23,7 @@ import {ValidationError} from "../../errors/validation_error"
 import deepEqual = require("deep-equal")
 import uuid = require("uuid")
 import {RequestContext, spanOperation} from "papiea-backend-utils"
+import {UnauthorizedError} from "../../errors/permission_error"
 
 export class ConstructorEntityCreationStrategy extends EntityCreationStrategy {
     protected differ: Differ
@@ -96,7 +97,7 @@ export class ConstructorEntityCreationStrategy extends EntityCreationStrategy {
             const constructor = this.kind.kind_procedures[procedure_name]
             if (constructor !== undefined && constructor !== null) {
                 if (this.user === undefined) {
-                    throw OnActionError.create("User not specified", procedure_name, this.kind.name)
+                    throw new UnauthorizedError()
                 }
                 try {
                     const schemas: any = {}

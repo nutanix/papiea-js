@@ -9,6 +9,7 @@ import { ProcedureInvocationError } from "./procedure_invocation_error";
 import { PermissionDeniedError, UnauthorizedError } from "./permission_error";
 import { BadRequestError } from "./bad_request_error";
 import { PapieaError } from "papiea-core";
+import {Logger} from "papiea-backend-utils"
 
 
 export class PapieaErrorResponseImpl implements PapieaResponse {
@@ -59,44 +60,45 @@ export class PapieaErrorResponseImpl implements PapieaResponse {
         return this
     }
 
-    static create(err: Error) {
-        let errorPayload: { message: string }[];
-        switch (err.constructor) {
-            case BadRequestError:
-                return new PapieaErrorResponseImpl(400, "Bad Request", PapieaError.BadRequest,
-                    [{ message: err.message }])
-            case ValidationError:
-                errorPayload = (err as ValidationError).errors.map(description => {
-                    return { message: description }
-                })
-                return new PapieaErrorResponseImpl(400, "Validation failed.", PapieaError.Validation, errorPayload)
-            case ProcedureInvocationError:
-                return new PapieaErrorResponseImpl((err as ProcedureInvocationError).status, "Procedure invocation failed.", PapieaError.ProcedureInvocation, (err as ProcedureInvocationError).errors)
-            case EntityNotFoundError:
-                return new PapieaErrorResponseImpl(
-                    404,
-                    "Entity not found.",
-                    PapieaError.EntityNotFound,
-                    [{ message: `Entity ${(err as EntityNotFoundError).uuid} not found` }],
-                )
-            case UnauthorizedError:
-                return new PapieaErrorResponseImpl(401, "Unauthorized.", PapieaError.Unauthorized)
-            case PermissionDeniedError:
-                return new PapieaErrorResponseImpl(403, "Permission denied.", PapieaError.PermissionDenied)
-            case GraveyardConflictingEntityError:
-                let graveyardErr = err as GraveyardConflictingEntityError
-                let meta = graveyardErr.existing_metadata
+    static create(logger: Logger): (err: Error) => PapieaErrorResponseImpl {
+        return (err: Error) => {
+            let errorPayload: { message: string }[];
+            switch (err.constructor) {
+                case BadRequestError:
+                    return new PapieaErrorResponseImpl(400, "Bad Request", PapieaError.BadRequest,
+                                                       [{ message: err.message }])
+                case ValidationError:
+                    errorPayload = (err as ValidationError).errors.map(description => {
+                        return { message: description }
+                    })
+                    return new PapieaErrorResponseImpl(400, "Validation failed.", PapieaError.Validation, errorPayload)
+                case ProcedureInvocationError:
+                    return new PapieaErrorResponseImpl((err as ProcedureInvocationError).status, "Procedure invocation failed.", PapieaError.ProcedureInvocation, (err as ProcedureInvocationError).errors)
+                case EntityNotFoundError:
+                    return new PapieaErrorResponseImpl(
+                        404,
+                        "Entity not found.",
+                        PapieaError.EntityNotFound,
+                        [{ message: `Entity ${(err as EntityNotFoundError).uuid} not found` }],
+                    )
+                case UnauthorizedError:
+                    return new PapieaErrorResponseImpl(401, "Unauthorized.", PapieaError.Unauthorized)
+                case PermissionDeniedError:
+                    return new PapieaErrorResponseImpl(403, "Permission denied.", PapieaError.PermissionDenied)
+                case GraveyardConflictingEntityError:
+                    let graveyardErr = err as GraveyardConflictingEntityError
+                    let meta = graveyardErr.existing_metadata
 
-                return new PapieaErrorResponseImpl(409, `${graveyardErr.message}: uuid - ${meta.uuid}, maximum current spec version - ${graveyardErr.highest_spec_version}`, PapieaError.ConflictingEntity)
-            case ConflictingEntityError:
-                let conflictingError = err as ConflictingEntityError
-                let metadata = conflictingError.existing_metadata
+                    return new PapieaErrorResponseImpl(409, `${graveyardErr.message}: uuid - ${meta.uuid}, maximum current spec version - ${graveyardErr.highest_spec_version}`, PapieaError.ConflictingEntity)
+                case ConflictingEntityError:
+                    let conflictingError = err as ConflictingEntityError
+                    let metadata = conflictingError.existing_metadata
 
-                return new PapieaErrorResponseImpl(409, `Conflicting Entity: ${metadata.uuid}. Existing entity has version ${metadata.spec_version}`, PapieaError.ConflictingEntity)
-            default:
-                console.log(`Default handle got error: ${err.message}.`)
-                console.log(err) // Shlomi.v: DEBUG: Need a better way to do this
-                return new PapieaErrorResponseImpl(500, err.message, PapieaError.ServerError)
+                    return new PapieaErrorResponseImpl(409, `Conflicting Entity: ${metadata.uuid}. Existing entity has version ${metadata.spec_version}`, PapieaError.ConflictingEntity)
+                default:
+                    logger.error(`Papiea encountered unexpected error: ${err}`)
+                    return new PapieaErrorResponseImpl(500, err.message, PapieaError.ServerError)
+            }
         }
     }
 }
