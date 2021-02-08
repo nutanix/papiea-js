@@ -604,11 +604,15 @@ export class Kind_Builder {
     }
 
     // Return type should always contain spec and status (metadata could be empty)
-    on_create(description: {input_schema: any, error_schemas?: ErrorSchemas}, handler: (ctx: ProceduralCtx_Interface, input: any) => Promise<{spec: Spec, status: Status, metadata?: Partial<Metadata>}>): Kind_Builder {
+    on_create(description: {input_schema?: any, error_schemas?: ErrorSchemas}, handler: (ctx: ProceduralCtx_Interface, input: any) => Promise<{spec: Spec, status: Status, metadata?: Partial<Metadata>}>): Kind_Builder {
         const name = `__${this.kind.name}_create`
         const loggerFactory = new LoggerFactory({logPath: name})
         const [logger, handle] = loggerFactory.createLogger()
         logger.info("You are registering on create handler. Note, this is a post create handler. The behaviour is due to change")
+        if (!description.input_schema) {
+            logger.info("Input schema for on_create is undefined, using the kind's entity structure")
+            description.input_schema = this.kind.kind_structure
+        }
         handle.cleanup()
         this.kind_procedure(name, description, handler)
         return this

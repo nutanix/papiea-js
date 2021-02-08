@@ -1426,7 +1426,7 @@ describe("Provider Sdk tests", () => {
         }
     });
 
-    test.only("Papiea version incompatible with the supported version should fail", async () => {
+    test("Papiea version incompatible with the supported version should fail", async () => {
         expect.assertions(1);
         const sdk = ProviderSdk.create_provider(papieaUrl, adminKey, server_config.host, server_config.port);
         try {
@@ -2169,6 +2169,51 @@ describe("SDK callback tests", () => {
             )
         } catch (e) {
             expect(e.response.status).toEqual(401)
+        } finally {
+            sdk.cleanup()
+        }
+    });
+
+    test("On create should use the kind structure if input schema is missing and succeed", async () => {
+        expect.hasAssertions();
+        const sdk = ProviderSdk.create_provider(papieaUrl, adminKey, server_config.host, server_config.port);
+        const location = sdk.new_kind(location_yaml);
+        prefix = "provider_on_create_no_input_schema_callback"
+        sdk.version(provider_version);
+        sdk.prefix(prefix);
+        sdk.provider_procedure(
+            "computeWithCreateCallback",
+            {input_schema: loadYamlFromTestFactoryDir("./test_data/procedure_sum_input.yml")},
+            async (ctx, input) => {
+            }
+        );
+        location.on_create({}, async (ctx, input) => {
+            expect(input).toBeDefined()
+            return {
+                spec: input,
+                status: input
+            }
+        })
+        try {
+            await sdk.register()
+            kind_name = sdk.provider.kinds[0].name
+            const {data: {metadata}} = await entityApi.post(
+                `/${prefix}/${provider_version}/${kind_name}`,
+                {
+                    x: 10,
+                    y: 11
+                },
+                {
+                    headers: {
+                        "Authorization": `Bearer ${adminKey}`
+                    }
+                }
+            )
+            await entityApi.delete(`/${prefix}/${provider_version}/${kind_name}/${metadata.uuid}`, {
+                headers: {
+                    "Authorization": `Bearer ${adminKey}`
+                }
+            })
         } finally {
             sdk.cleanup()
         }

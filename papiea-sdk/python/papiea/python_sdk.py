@@ -581,6 +581,8 @@ class KindBuilder:
 
     def on_create(self, description: ConstructorProcedureDescription, handler: Callable[[ProceduralCtx, Any], ConstructorResult]) -> "KindBuilder":
         name = f"__{self.kind['name']}_create"
+        if description.get("input_schema") == None:
+            description["input_schema"] = self.kind['kind_structure']
         self.kind_procedure(
             name, description, handler
         )
