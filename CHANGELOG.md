@@ -1,3 +1,4 @@
+- Version 0.9.24+1964: Fixed client tests and added sdk tests to verify status-only fields in spec create
 - Version 0.9.23+1958: Fixed deep copy bug in validate spec module in validator
 - Version 0.9.22+1955: Removed input tag from the constructor procedure schema in api docs (#616) PR url: git@github.com:nutanix/papiea.git/pull/616
 - Version 0.9.21+1952: Use kind structure in sdk on_create if input schema is missing (#615) PR url: git@github.com:nutanix/papiea.git/pull/615
