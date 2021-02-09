@@ -46,5 +46,6 @@ describe("Entity API tests", () => {
         const watcher = await location_client.update(entity.metadata, {x: 12, y: 10})
         expect(watcher!.status).toEqual(IntentfulStatus.Active)
         await location_client.delete(entity.metadata)
+        location_client.close()
     })
 })

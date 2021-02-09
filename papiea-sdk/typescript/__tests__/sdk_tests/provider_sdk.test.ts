@@ -1354,6 +1354,55 @@ describe("Provider Sdk tests", () => {
         }
     });
 
+    test("Create entity spec with status-only field set and default input schema for constructor should fail", async () => {
+        expect.assertions(1)
+        const sdk = ProviderSdk.create_provider(papieaUrl, adminKey, server_config.host, server_config.port);
+        const test_object = sdk.new_kind(STATUS_ONLY_TEST_SCHEMA);
+        sdk.version(provider_version);
+        sdk.prefix("test_status_only_field_update_spec");
+        test_object.on_create({}, async (ctx, input) => {
+            return {
+                spec: {
+                    test: input.test
+                },
+                status: {
+                    test: []
+                }
+            }
+        })
+        test_object.on('test.+{id}', async(ctx, entity, diff) => {
+            await ctx.update_status(entity.metadata, {
+                test: [{
+                    id: 'test-idval',
+                    a: 'test-aval',
+                    b: 'test-aval'
+                }]
+            })
+        })
+        try {
+            await sdk.register();
+            const kind_name = sdk.provider.kinds[0].name;
+            await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/${kind_name}`, {
+                test: [
+                    {
+                        id: "test-idval",
+                        a: "test-aval",
+                        b: "test-aval"
+                    }
+                ]
+            }, {
+                headers: {
+                  "Content-Type": "application/json",
+                  "Authorization": `Bearer ${adminKey}`
+                }
+            })
+        } catch (e) {
+            expect(e.response.data.error.errors[0].message).toBe("Target property 'a' is not in the model")
+        } finally {
+            sdk.cleanup()
+        }
+    });
+
     test("Papiea version equal to the supported version should pass", async () => {
         expect.assertions(1);
         const sdk = ProviderSdk.create_provider(papieaUrl, adminKey, server_config.host, server_config.port);

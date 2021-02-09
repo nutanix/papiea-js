@@ -57,6 +57,7 @@ describe("Entity API tests", () => {
             promises.push(location_client.delete({uuid, kind: kind_name}))
         }
         await Promise.all(promises)
+        location_client.close()
     })
 
     test("Filtering via async iterators with batch size should work correctly", async () => {
@@ -81,6 +82,7 @@ describe("Entity API tests", () => {
             promises.push(location_client.delete({uuid, kind: kind_name}))
         }
         await Promise.all(promises)
+        location_client.close()
     })
 
     test("List async iterators should work correctly", async () => {
@@ -105,5 +107,6 @@ describe("Entity API tests", () => {
             promises.push(location_client.delete({uuid, kind: kind_name}))
         }
         await Promise.all(promises)
+        location_client.close()
     })
 })
