@@ -28,7 +28,7 @@ interface EntityCreationResult {
     spec: Spec,
     status: Status | null
 }
-let tracerClosed = false
+let tracerOpen = false
 let clientTracer: Tracer | null = null
 
 class ClientTracer {
@@ -40,7 +40,7 @@ class ClientTracer {
         if (!clientTracer) {
             const tracer = getTracer("papiea-client")
             clientTracer = tracer
-            tracerClosed = false
+            tracerOpen = true
             return tracer
         } else {
             console.log("Client tracer initialized, skipping.")
@@ -53,9 +53,10 @@ class ClientTracer {
             console.error("Unable to close tracer. Tracer uninitialized")
         }
         try {
-            if (!tracerClosed) {
+            if (tracerOpen) {
+                console.log("Closing client tracer...");
                 (clientTracer as any).close()
-                tracerClosed = true
+                tracerOpen = false
             }
         } catch (e) {
             console.error(`Unable to close tracer. ${e}`)
@@ -248,7 +249,7 @@ export function provider_client(papiea_url: string, provider: string, version: s
     return {
         get_kind: (kind: string) => kind_client(papiea_url, provider, kind, version, the_s2skey),
         invoke_procedure: (proc_name: string, input: any) => invoke_provider_procedure(provider, version, proc_name, input, papiea_url, the_s2skey, client_tracer),
-        close: () => close_func
+        close: () => close_func()
     }
 }
 
@@ -289,7 +290,7 @@ export function kind_client(papiea_url: string, provider: string, kind: string, 
         list_iter: () => filter_entity_iter(provider, kind, version, {}, papiea_url, the_s2skey, client_tracer),
         invoke_procedure: (proc_name: string, entity_reference: Entity_Reference, input: any) => invoke_entity_procedure(provider, kind, version, proc_name, input, entity_reference, papiea_url, the_s2skey, client_tracer),
         invoke_kind_procedure: (proc_name: string, input: any) => invoke_kind_procedure(provider, kind, version, proc_name, input, papiea_url, the_s2skey, client_tracer),
-        close: () => close_func
+        close: () => close_func()
     }
     return crudder
 }
@@ -315,7 +316,7 @@ export function intent_watcher_client(papiea_url: string, s2skey?: string, trace
         list_iter: () => filter_intent_watcher(papiea_url, "", the_s2skey, client_tracer),
         filter_iter: (filter: any) => filter_intent_watcher(papiea_url, filter, the_s2skey, client_tracer),
         wait_for_status_change: (watcher_ref: any, watcher_status: IntentfulStatus, timeout_secs: number = 50, delay_millis: number = 500) => wait_for_watcher_status(papiea_url, the_s2skey, watcher_ref, watcher_status, timeout_secs, delay_millis, client_tracer),
-        close: () => close_func
+        close: () => close_func()
     }
     return intent_watcher
 }

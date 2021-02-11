@@ -2268,7 +2268,7 @@ describe("SDK callback tests", () => {
         }
     });
 
-    test.only("Engine should reject incorrect entity creation format (constructor format for example)", async () => {
+    test("Engine should reject incorrect entity creation format (constructor format for example)", async () => {
         expect.hasAssertions();
         const sdk = ProviderSdk.create_provider(papieaUrl, adminKey, server_config.host, server_config.port);
         sdk.new_kind(location_yaml);
