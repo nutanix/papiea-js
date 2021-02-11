@@ -32,8 +32,16 @@ const defaultLogger = {
     }
 };
 
-export function getTracer(serviceName: string, logger?: Logger, reporterConfig?: ReporterConfig, samplerConfig?: SamplerConfig): Tracer {
-    const tracerLogger = logger ?? defaultLogger
+const suppressedLogger = {
+    info: (msg: string) => {
+    },
+    error: (msg: string) => {
+        console.log("JAEGER ERROR", msg);
+    }
+}
+
+export function getTracer(serviceName: string, logger?: Logger, reporterConfig?: ReporterConfig, samplerConfig?: SamplerConfig, logJaegerMessages: boolean = false): Tracer {
+    const tracerLogger = logJaegerMessages ? (logger ?? defaultLogger) : suppressedLogger
     const config = {
         serviceName: serviceName,
         reporter: reporterConfig ?? defaultReporter,
