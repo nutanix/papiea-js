@@ -32,6 +32,7 @@
     "@types/btoa": "^1.2.3",
     "@types/deep-equal": "^1.0.1",
     "@types/jaeger-client": "^3.15.4",
+    "ajv": "^7.1.0",
     "atob": "^2.1.2",
     "axios": "^0.18.1",
     "btoa": "^1.2.1",

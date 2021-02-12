@@ -323,6 +323,16 @@ ajv@^6.5.5:
     json-schema-traverse "^0.4.1"
     uri-js "^4.2.2"
 
+ajv@^7.1.0:
+  version "7.1.0"
+  resolved "https://registry.npmjs.org/ajv/-/ajv-7.1.0.tgz#f982ea7933dc7f1012eae9eec5a86687d805421b"
+  integrity sha512-svS9uILze/cXbH0z2myCK2Brqprx/+JJYK5pHicT/GQiBfzzhUVAIT6MwqJg8y4xV/zoGsUeuPuwtoiKSGE15g==
+  dependencies:
+    fast-deep-equal "^3.1.1"
+    json-schema-traverse "^1.0.0"
+    require-from-string "^2.0.2"
+    uri-js "^4.2.2"
+
 ansi-align@^2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/ansi-align/-/ansi-align-2.0.0.tgz#c36aeccba563b89ceb556f3690f0b1d9e3547f7f"
@@ -3244,6 +3254,11 @@ json-schema-traverse@^0.4.1:
   resolved "https://registry.yarnpkg.com/json-schema-traverse/-/json-schema-traverse-0.4.1.tgz#69f6a87d9513ab8bb8fe63bdb0979c448e684660"
   integrity sha512-xbbCH5dCYU5T8LcEhhuh7HJ88HXuW3qsI3Y0zOZFKfZEHcpWiHU/Jxzk629Brsab/mMiHQti9wMP+845RPe3Vg==
 
+json-schema-traverse@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.npmjs.org/json-schema-traverse/-/json-schema-traverse-1.0.0.tgz#ae7bcb3656ab77a73ba5c49bf654f38e6b6860e2"
+  integrity sha512-NM8/P9n3XjXhIZn1lLhkFaACTOURQXjWhV4BA/RnOv8xvgqtqpAX9IO4mRQxSx1Rlo4tqzeqb0sOlruaOy3dug==
+
 json-schema@0.2.3:
   version "0.2.3"
   resolved "https://registry.yarnpkg.com/json-schema/-/json-schema-0.2.3.tgz#b480c892e59a2f05954ce727bd3f2a4e882f9e13"
@@ -4169,7 +4184,7 @@ package-json@^4.0.0:
     semver "^5.1.0"
 
 "papiea-backend-utils@file:../papiea-backend-utils":
-  version "0.9.9"
+  version "0.9.24"
   dependencies:
     "@types/express" "^4.17.9"
     "@types/jaeger-client" "^3.15.4"
@@ -4177,11 +4192,11 @@ package-json@^4.0.0:
     jaeger-client "^3.18.1"
     logform "^2.1.2"
     opentracing "^0.14.5"
-    papiea-core "file:../../../Library/Caches/Yarn/v6/npm-papiea-backend-utils-0.9.9-2d8b7604-fc91-4e8b-af4f-b85bb34ef041-1609940453357/node_modules/papiea-core"
+    papiea-core "file:../../../Library/Caches/Yarn/v6/npm-papiea-backend-utils-0.9.24-115b379d-ab46-405d-b3a1-c8bbf96b3e1c-1613136014333/node_modules/papiea-core"
     winston "^3.3.3"
 
 "papiea-core@file:../papiea-core":
-  version "0.9.9"
+  version "0.9.24"
 
 parse-glob@^3.0.4:
   version "3.0.4"
@@ -4678,6 +4693,11 @@ require-directory@^2.1.1:
   version "2.1.1"
   resolved "https://registry.yarnpkg.com/require-directory/-/require-directory-2.1.1.tgz#8c64ad5fd30dab1c976e2344ffe7f792a6a6df42"
   integrity sha1-jGStX9MNqxyXbiNE/+f3kqam30I=
+
+require-from-string@^2.0.2:
+  version "2.0.2"
+  resolved "https://registry.npmjs.org/require-from-string/-/require-from-string-2.0.2.tgz#89a7fdd938261267318eafe14f9c32e598c36909"
+  integrity sha512-Xf0nWe6RseziFMu+Ap9biiUbmplq6S9/p+7w7YXP/JBHhrUDDUhwa+vANyubuqfZWTveU//DYVGsDG7RKL/vEw==
 
 require-main-filename@^1.0.1:
   version "1.0.1"
