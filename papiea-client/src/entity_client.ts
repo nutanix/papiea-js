@@ -28,6 +28,41 @@ interface EntityCreationResult {
     spec: Spec,
     status: Status | null
 }
+let tracerOpen = false
+let clientTracer: Tracer | null = null
+
+class ClientTracer {
+
+    protected constructor() {
+    }
+
+    static getTracer(): Tracer {
+        if (!clientTracer) {
+            const tracer = getTracer("papiea-client")
+            clientTracer = tracer
+            tracerOpen = true
+            return tracer
+        } else {
+            console.log("Client tracer initialized, skipping.")
+            return clientTracer
+        }
+    }
+
+    static close(): void {
+        if (!clientTracer) {
+            console.error("Unable to close tracer. Tracer uninitialized")
+        }
+        try {
+            if (tracerOpen) {
+                console.log("Closing client tracer...");
+                (clientTracer as any).close()
+                tracerOpen = false
+            }
+        } catch (e) {
+            console.error(`Unable to close tracer. ${e}`)
+        }
+    }
+}
 
 type EntitySpec = Pick<Entity, Metadata | Spec>
 
@@ -208,12 +243,13 @@ export interface ProviderClient {
 }
 
 export function provider_client(papiea_url: string, provider: string, version: string, s2skey?: string, tracer?: Tracer): ProviderClient {
-    const client_tracer = tracer ?? getTracer("papiea-client")
+    const client_tracer = tracer ?? ClientTracer.getTracer()
+    const close_func = tracer ? (tracer as any).close() : ClientTracer.close
     const the_s2skey = s2skey ?? 'anonymous'
     return {
         get_kind: (kind: string) => kind_client(papiea_url, provider, kind, version, the_s2skey),
         invoke_procedure: (proc_name: string, input: any) => invoke_provider_procedure(provider, version, proc_name, input, papiea_url, the_s2skey, client_tracer),
-        close: () => (client_tracer as any).close()
+        close: () => close_func()
     }
 }
 
@@ -241,7 +277,8 @@ export interface EntityCRUD {
 }
 
 export function kind_client(papiea_url: string, provider: string, kind: string, version: string, s2skey?: string, tracer?: Tracer): EntityCRUD {
-    const client_tracer = tracer ?? getTracer("papiea-client")
+    const client_tracer = tracer ?? ClientTracer.getTracer()
+    const close_func = tracer ? (tracer as any).close() : ClientTracer.close
     const the_s2skey = s2skey ?? 'anonymous'
     const crudder: EntityCRUD = {
         get: (entity_reference: Entity_Reference) => get_entity(provider, kind, version, entity_reference, papiea_url, the_s2skey, client_tracer),
@@ -253,7 +290,7 @@ export function kind_client(papiea_url: string, provider: string, kind: string, 
         list_iter: () => filter_entity_iter(provider, kind, version, {}, papiea_url, the_s2skey, client_tracer),
         invoke_procedure: (proc_name: string, entity_reference: Entity_Reference, input: any) => invoke_entity_procedure(provider, kind, version, proc_name, input, entity_reference, papiea_url, the_s2skey, client_tracer),
         invoke_kind_procedure: (proc_name: string, input: any) => invoke_kind_procedure(provider, kind, version, proc_name, input, papiea_url, the_s2skey, client_tracer),
-        close: () => (client_tracer as any).close()
+        close: () => close_func()
     }
     return crudder
 }
@@ -271,14 +308,15 @@ export interface IntentWatcherClient {
 }
 
 export function intent_watcher_client(papiea_url: string, s2skey?: string, tracer?: Tracer): IntentWatcherClient {
-    const client_tracer = tracer ?? getTracer("papiea-client")
+    const client_tracer = tracer ?? ClientTracer.getTracer()
+    const close_func = tracer ? (tracer as any).close() : ClientTracer.close
     const the_s2skey = s2skey ?? 'anonymous'
     const intent_watcher: IntentWatcherClient = {
         get: (id: string) => get_intent_watcher(papiea_url, id, the_s2skey, client_tracer),
         list_iter: () => filter_intent_watcher(papiea_url, "", the_s2skey, client_tracer),
         filter_iter: (filter: any) => filter_intent_watcher(papiea_url, filter, the_s2skey, client_tracer),
         wait_for_status_change: (watcher_ref: any, watcher_status: IntentfulStatus, timeout_secs: number = 50, delay_millis: number = 500) => wait_for_watcher_status(papiea_url, the_s2skey, watcher_ref, watcher_status, timeout_secs, delay_millis, client_tracer),
-        close: () => (client_tracer as any).close()
+        close: () => close_func()
     }
     return intent_watcher
 }
