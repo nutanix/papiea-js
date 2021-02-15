@@ -45,7 +45,7 @@ const toComplexTracingConfig = toComplex(tracingConfigSchema)
 
 function toNum(val: string): number {
     try {
-        return Number.parseInt(val)
+        return Number.parseFloat(val)
     } catch (e) {
         throw new ValidationError([new Error(`Couldn't validate ${val}, expected number`)])
     }
