@@ -3,15 +3,57 @@ import { load } from "js-yaml"
 import * as path from "path"
 import {LoggingVerbosityOptions} from "papiea-backend-utils"
 import {TracingConfig} from "jaeger-client"
+import Ajv, {DefinedError} from "ajv"
+import {ValidationError} from "../errors/validation_error"
+import {loggingVerbositySchema, tracingConfigSchema} from "./arg_parser_schemas"
 
 const PAPIEA_CONFIG_PATH = process.env.PAPIEA_CONFIG_PATH ?? path.join(__dirname, "../../papiea-config.yaml")
 
-const toNum: (val: string) => number = Number.parseInt
+const ajv = new Ajv()
+function toComplex(schema: any): (val: any) => any {
+    const validate = ajv.compile(schema)
+
+    return (rawValue) => {
+        let value: object = {}
+        if (typeof rawValue === "string") {
+            try {
+                value = JSON.parse(rawValue)
+            } catch (e) {
+                console.error(`Couldn't JSON parse value: ${rawValue}`)
+                throw e
+            }
+        } else if (typeof rawValue === "object") {
+            value = rawValue
+        } else {
+            throw new ValidationError([new Error(`Complex error should be represented by a string value, found: ${rawValue}`)])
+
+        }
+        if (validate(value)) {
+            return value
+        } else {
+            console.error(`Couldn't validate value: ${JSON.stringify(value)}`)
+            for (const err of validate.errors as DefinedError[]) {
+                console.error(JSON.stringify(err))
+            }
+            throw new ValidationError(validate.errors as any)
+        }
+    }
+}
+
+const toComplexLoggingVerbosity = toComplex(loggingVerbositySchema)
+const toComplexTracingConfig = toComplex(tracingConfigSchema)
+
+function toNum(val: string): number {
+    try {
+        return Number.parseFloat(val)
+    } catch (e) {
+        throw new ValidationError([new Error(`Couldn't validate ${val}, expected number`)])
+    }
+}
 const toStr: (val: string) => string = (val: string) => val
 const toBool: (val: string) => boolean = (val: string) => {
     return !["0", "null", "false", ""].includes(val);
 }
-const id: (val: any) => any = (val: any) => JSON.parse(JSON.stringify(val))
 
 const TRANSFORM_FN_MAP: { [key in keyof PapieaConfig]: (val: any) => PapieaConfig[key] } = {
     server_port: toNum,
@@ -27,8 +69,8 @@ const TRANSFORM_FN_MAP: { [key in keyof PapieaConfig]: (val: any) => PapieaConfi
     mongo_db: toStr,
     admin_key: toStr,
     logging_level: toStr,
-    logging_verbosity: id,
-    tracing_config: id
+    logging_verbosity: toComplexLoggingVerbosity,
+    tracing_config: toComplexTracingConfig
 }
 
 export interface PapieaConfig {
@@ -123,6 +165,9 @@ export function getConfig(): PapieaConfig {
     for (let key in PAPIEA_DEFAULT_CFG) {
         if (PAPIEA_DEFAULT_CFG.hasOwnProperty(key) && !config.hasOwnProperty(key)) {
             config[key] = PAPIEA_DEFAULT_CFG[key]
+        } else {
+            const transformFn = TRANSFORM_FN_MAP[key]
+            config[key] = transformFn(config[key])
         }
         if (process.env[mapConfigToEnv[key]] !== undefined) {
             const transformFn = TRANSFORM_FN_MAP[key]
