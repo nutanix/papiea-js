@@ -1,3 +1,4 @@
+- Version 0.9.26+1985: Add argument validation (#630)
 - Version 0.9.25+1974: Fix client tracing issues (#624) PR url: git@github.com:nutanix/papiea.git/pull/624
 - Version 0.9.24+1964: Fixed client tests and added sdk tests to verify status-only fields in spec create
 - Version 0.9.23+1958: Fixed deep copy bug in validate spec module in validator
