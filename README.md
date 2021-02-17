@@ -142,7 +142,9 @@ tracing_config: {
     sampler: {
         type: string,
         param: number
-    }
+    },
+    # Log messages to standard logger output (default: false)
+    logMessages: boolean
 }
 ```
 
