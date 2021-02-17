@@ -46,7 +46,7 @@ const tracingConfig = config.tracing_config
 
 async function setUpApplication(): Promise<express.Express> {
     const logger = LoggerFactory.makeLogger({level: loggingLevel, verbosity_options: verbosityOptions});
-    const tracer = getTracer("papiea-engine", logger, tracingConfig.reporter, tracingConfig.sampler)
+    const tracer = getTracer("papiea-engine", logger, tracingConfig.reporter, tracingConfig.sampler, tracingConfig.logMessages)
     const trace = getTracingMiddleware(tracer)
     const auditLogger: AuditLogger = new AuditLogger(logger, papieaDebug)
     const app = express();
