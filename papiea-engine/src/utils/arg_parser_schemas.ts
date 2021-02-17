@@ -2,6 +2,10 @@ import {JSONSchemaType} from "ajv"
 import {LoggingVerbosityOptions} from "papiea-backend-utils"
 import {TracingConfig} from "jaeger-client"
 
+export interface PapieaTracingConfig extends TracingConfig {
+    logMessages?: boolean
+}
+
 export const loggingVerbositySchema: JSONSchemaType<LoggingVerbosityOptions> = {
     type: "object",
     properties: {
@@ -12,7 +16,7 @@ export const loggingVerbositySchema: JSONSchemaType<LoggingVerbosityOptions> = {
     additionalProperties: false,
 }
 
-export const tracingConfigSchema: JSONSchemaType<TracingConfig> = {
+export const tracingConfigSchema: JSONSchemaType<PapieaTracingConfig> = {
     type: "object",
     properties: {
         serviceName: {type: "string", nullable: true},
@@ -45,6 +49,7 @@ export const tracingConfigSchema: JSONSchemaType<TracingConfig> = {
         },
         traceId128bit: {type: "boolean", nullable: true},
         shareRpcSpan: {type: "boolean", nullable: true},
+        logMessages: {type: "boolean", nullable: true}
     },
     required: [],
     additionalProperties: false

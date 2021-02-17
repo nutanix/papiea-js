@@ -36,7 +36,6 @@ const suppressedLogger = {
     info: (msg: string) => {
     },
     error: (msg: string) => {
-        console.log("JAEGER ERROR", msg);
     }
 }
 

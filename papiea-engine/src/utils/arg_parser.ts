@@ -2,10 +2,13 @@ import * as fs from "fs"
 import { load } from "js-yaml"
 import * as path from "path"
 import {LoggingVerbosityOptions} from "papiea-backend-utils"
-import {TracingConfig} from "jaeger-client"
 import Ajv, {DefinedError} from "ajv"
 import {ValidationError} from "../errors/validation_error"
-import {loggingVerbositySchema, tracingConfigSchema} from "./arg_parser_schemas"
+import {
+    loggingVerbositySchema,
+    PapieaTracingConfig,
+    tracingConfigSchema
+} from "./arg_parser_schemas"
 
 const PAPIEA_CONFIG_PATH = process.env.PAPIEA_CONFIG_PATH ?? path.join(__dirname, "../../papiea-config.yaml")
 
@@ -118,7 +121,7 @@ export interface PapieaConfig {
     // Config options for logging verbosity
     logging_verbosity: LoggingVerbosityOptions,
 
-    tracing_config: TracingConfig
+    tracing_config: PapieaTracingConfig
 }
 
 const PAPIEA_DEFAULT_CFG: PapieaConfig = {
@@ -149,7 +152,8 @@ const PAPIEA_DEFAULT_CFG: PapieaConfig = {
         sampler: {
             type: "const",
             param: 1
-        }
+        },
+        logMessages: false
     }
 }
 
