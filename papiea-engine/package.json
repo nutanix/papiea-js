@@ -28,6 +28,7 @@
   "author": "Shlomi Vaknin",
   "license": "ISC",
   "dependencies": {
+    "@apidevtools/swagger-parser": "^10.0.2",
     "@types/atob": "^2.1.2",
     "@types/btoa": "^1.2.3",
     "@types/deep-equal": "^1.0.1",

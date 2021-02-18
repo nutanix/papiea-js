@@ -270,9 +270,7 @@ describe("API docs test entity", () => {
             .post
             .requestBody
             .content["application/json"]
-            .schema
-            .properties
-            .input['$ref']).toEqual(`#/components/schemas/provider_with_validation_scheme-0.1.0-computeSumWithValidation-SumInput`);
+            .schema['$ref']).toEqual(`#/components/schemas/provider_with_validation_scheme-0.1.0-computeSumWithValidation-SumInput`);
 
         expect(apiDoc.paths[`/services/${ provider.prefix }/${ provider.version }/procedure/${ procedure_id }`]
             .post
@@ -361,9 +359,7 @@ describe("API docs test entity", () => {
                    .post
                    .requestBody
                    .content["application/json"]
-                   .schema
-                   .properties
-                   .input['$ref']).toEqual(`#/components/schemas/provider_with_validation_scheme-0.1.0-computeSumWithValidationAnonymous-Input`);
+                   .schema['$ref']).toEqual(`#/components/schemas/provider_with_validation_scheme-0.1.0-computeSumWithValidationAnonymous-Input`);
 
         expect(apiDoc.paths[`/services/${ provider.prefix }/${ provider.version }/procedure/${ procedure_id_anon }`]
                    .post
@@ -495,9 +491,7 @@ describe("API docs test entity", () => {
             .post
             .requestBody
             .content["application/json"]
-            .schema
-            .properties
-            .input['$ref']).toEqual(`#/components/schemas/Nothing`);
+            .schema['$ref']).toEqual(`#/components/schemas/Nothing`);
 
         expect(apiDoc.paths[`/services/${ provider.prefix }/${ provider.version }/procedure/${ procedure_id }`]
             .post
@@ -680,5 +674,73 @@ describe("API docs test entity", () => {
 
         expect(apiDoc.components.schemas[`${ provider.prefix }-${ provider.version }-${ kind_name }-__${ kind_name }_create-${ kind_name }`])
         .toEqual(provider.kinds[0].kind_structure[kind_name]);
+    });
+
+    test("Provider kinds with wrong field name in schema should throw validation error", async () => {
+        expect.assertions(2);
+        try {
+            const location_yaml = loadYamlFromTestFactoryDir("test_data/location_kind_test_data.yml");
+
+            let description = location_yaml["Location"]["description"]
+            delete location_yaml["Location"]["description"]
+            location_yaml["Location"]["decription"] = description
+
+            const location_kind = new KindBuilder(IntentfulBehaviour.SpecOnly).withDescription(location_yaml).build()
+            const provider: Provider = new ProviderBuilder("provider_kind_with_wrong_field_name")
+                .withVersion("0.1.0")
+                .withKinds([location_kind])
+                .build();
+
+            const providerDbMock = new Provider_DB_Mock(provider);
+            const apiDocsGenerator = new ApiDocsGenerator(providerDbMock);
+            await apiDocsGenerator.getApiDocs(providerDbMock.provider);
+        } catch (err) {
+            expect(err.errors.length).toBe(1)
+            expect(err.errors[0]).toBe("Schema has invalid name for the field: Location.decription")
+        }
+    });
+
+    test("Provider kinds with duplicate required fields should throw validation error", async () => {
+        expect.assertions(2);
+        try {
+            const location_yaml = loadYamlFromTestFactoryDir("test_data/location_kind_test_data.yml");
+
+            location_yaml["Location"]["properties"]["v"]["required"] = ["e", "d", "e"]
+
+            const location_kind = new KindBuilder(IntentfulBehaviour.SpecOnly).withDescription(location_yaml).build()
+            const provider: Provider = new ProviderBuilder("provider_kind_with_wrong_field_name")
+                .withVersion("0.1.0")
+                .withKinds([location_kind])
+                .build();
+
+            const providerDbMock = new Provider_DB_Mock(provider);
+            const apiDocsGenerator = new ApiDocsGenerator(providerDbMock);
+            await apiDocsGenerator.getApiDocs(providerDbMock.provider);
+        } catch (err) {
+            expect(err.errors.length).toBe(1)
+            expect(err.errors[0]).toBe("Schema field: Location.properties.v.required has duplicate values at indexes 0 and 2")
+        }
+    });
+
+    test("Provider kinds with empty required list should throw validation error", async () => {
+        expect.assertions(2);
+        try {
+            const location_yaml = loadYamlFromTestFactoryDir("test_data/location_kind_test_data.yml");
+
+            location_yaml["Location"]["required"] = []
+
+            const location_kind = new KindBuilder(IntentfulBehaviour.SpecOnly).withDescription(location_yaml).build()
+            const provider: Provider = new ProviderBuilder("provider_kind_with_wrong_field_name")
+                .withVersion("0.1.0")
+                .withKinds([location_kind])
+                .build();
+
+            const providerDbMock = new Provider_DB_Mock(provider);
+            const apiDocsGenerator = new ApiDocsGenerator(providerDbMock);
+            await apiDocsGenerator.getApiDocs(providerDbMock.provider);
+        } catch (err) {
+            expect(err.errors.length).toBe(1)
+            expect(err.errors[0]).toBe("Expected list for schema field: Location.required to have minimum size: 1, received size: 0")
+        }
     });
 });

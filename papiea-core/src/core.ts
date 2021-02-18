@@ -351,3 +351,10 @@ export enum Action {
     InactivateS2SKey = "inactive_key",
     UpdateStatus = "update_status",
 }
+
+export enum SwaggerValidatorErrorMessages {
+    missing_required_ref_str = "Missing required property: $ref",
+    additional_props_not_allowed_str = "Additional properties not allowed: ",
+    array_short_str = "Array is too short (",
+    array_items_not_unique_str = "Array items are not unique (indexes "
+}

@@ -1,8 +1,58 @@
 import {Provider_DB} from "../databases/provider_db_interface"
-import {FieldBehavior, IntentfulBehaviour, Kind, Procedural_Signature, Provider} from "papiea-core"
+import {FieldBehavior, IntentfulBehaviour, Kind, Procedural_Signature, Provider, SwaggerValidatorErrorMessages} from "papiea-core"
+import { ValidationError } from "../errors/validation_error";
+
+const SwaggerParser = require("@apidevtools/swagger-parser");
 
 function getConstructorProcedureName(kind: Kind): string {
     return `__${kind.name}_create`
+}
+
+function translateSwaggerErrors(swaggerErrors: any, translatedErrors: Error[], path: string = '') {
+    swaggerErrors.forEach((error: any) => {
+        if (error.hasOwnProperty("inner")) {
+            translateSwaggerErrors(error.inner, translatedErrors, error.path.join('.'))
+        } else {
+            // Translate message for the inner most error structure
+            if (!path.includes("-Spec") && !path.includes("-Status")) {
+                if (error.message !== SwaggerValidatorErrorMessages.missing_required_ref_str) {
+                    let message: string  = error.message
+                    path = path.replace("paths.", "")
+                    path = path.replace("components.schemas.", "")
+                    if (error.message.includes(SwaggerValidatorErrorMessages.additional_props_not_allowed_str)) {
+                        const fieldName = error.message.replace(SwaggerValidatorErrorMessages.additional_props_not_allowed_str, "")
+                        message = `Schema has invalid name for the field: ${path}.${fieldName}`
+                    } else if (error.message.includes(SwaggerValidatorErrorMessages.array_short_str)) {
+                        error.message = error.message.replace(SwaggerValidatorErrorMessages.array_short_str, "")
+                        const actualSize = error.message.slice(0, error.message.indexOf(')'))
+                        const minimumSize = error.message.replace(`${actualSize}), minimum `, "")
+                        const fieldName = error.path[error.path.length-1]
+                        message = `Expected list for schema field: ${path}.${fieldName} to have minimum size: ${minimumSize}, received size: ${actualSize}`
+                    } else if (error.message.includes(SwaggerValidatorErrorMessages.array_items_not_unique_str)) {
+                        error.message = error.message.replace(SwaggerValidatorErrorMessages.array_items_not_unique_str, "")
+                        const index1 = error.message.slice(0, error.message.indexOf(" "))
+                        error.message = error.message.replace(`${index1} and `, "")
+                        const index2 = error.message.substring(0, error.message.length - 1)
+                        const fieldName = error.path[error.path.length-1]
+                        message = `Schema field: ${path}.${fieldName} has duplicate values at indexes ${index1} and ${index2}`
+                    }
+                    translatedErrors.push(new Error(message))
+                }
+            }
+        }
+    })
+}
+
+async function validateOpenAPISchema(root: any) {
+    try {
+        await SwaggerParser.validate(root);
+    } catch(err) {
+        let translatedErrors: Error[] = []
+        translateSwaggerErrors(err.details, translatedErrors)
+        if (translatedErrors.length > 0) {
+            throw new ValidationError(translatedErrors)
+        }
+    }
 }
 
 export default class ApiDocsGenerator {
@@ -426,7 +476,7 @@ export default class ApiDocsGenerator {
 
     processEmptyValidation(proc_def: any, sig: Procedural_Signature) {
         if (Object.entries(sig.argument).length === 0 && sig.argument.constructor === Object) {
-            proc_def.requestBody.content["application/json"].schema.properties.input['$ref'] = `#/components/schemas/Nothing`
+            proc_def.requestBody.content["application/json"].schema['$ref'] = `#/components/schemas/Nothing`
         }
         if (Object.entries(sig.result).length === 0 && sig.result.constructor === Object) {
             proc_def.responses["200"].content["application/json"].schema["$ref"] = `#/components/schemas/Nothing`
@@ -536,11 +586,7 @@ export default class ApiDocsGenerator {
                 "content": {
                     "application/json": {
                         "schema": {
-                            "properties": {
-                                "input": {
-                                    "$ref": `#/components/schemas/${ input }`
-                                }
-                            }
+                            "$ref": `#/components/schemas/${ input }`
                         }
                     }
                 }
@@ -593,11 +639,7 @@ export default class ApiDocsGenerator {
                 "content": {
                     "application/json": {
                         "schema": {
-                            "properties": {
-                                "input": {
-                                    "$ref": `#/components/schemas/${ input }`
-                                }
-                            }
+                            "$ref": `#/components/schemas/${ input }`
                         }
                     }
                 }
@@ -638,11 +680,7 @@ export default class ApiDocsGenerator {
                 "content": {
                     "application/json": {
                         "schema": {
-                            "properties": {
-                                "input": {
-                                    "$ref": `#/components/schemas/${ input }`
-                                }
-                            }
+                            "$ref": `#/components/schemas/${ input }`
                         }
                     }
                 }
@@ -965,6 +1003,11 @@ export default class ApiDocsGenerator {
 
         Object.assign(root.components, this.setSecurityScheme());
         Object.assign(root, this.setSecurity());
+
+        // Copying root object using JSON methods since shallow copy causes
+        // the root model's refs to be resolved and creates redundancy in
+        // the OpenAPI schema.
+        await validateOpenAPISchema(JSON.parse(JSON.stringify(root)))
 
         return root;
     }
