@@ -43,7 +43,6 @@ class ClientTracer {
             tracerOpen = true
             return tracer
         } else {
-            console.log("Client tracer initialized, skipping.")
             return clientTracer
         }
     }
@@ -54,7 +53,6 @@ class ClientTracer {
         }
         try {
             if (tracerOpen) {
-                console.log("Closing client tracer...");
                 (clientTracer as any).close()
                 tracerOpen = false
             }
