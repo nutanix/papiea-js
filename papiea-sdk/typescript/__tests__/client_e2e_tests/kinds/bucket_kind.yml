@@ -1,0 +1,32 @@
+bucket:
+    type: object
+    title: Bucket
+    description: Bucket structure (similar to S3)
+    x-papiea-entity: differ
+    required:
+        - name
+    properties:
+        name:
+            type: string
+            description: Name of the bucket
+        objects:
+            type: array
+            description: Information for the objects within the bucket
+            items:
+                type: object
+                properties:
+                    name:
+                        type: string
+                        description: Name of the object within the bucket
+                    reference:
+                        type: object
+                        description: Reference of the objects within the bucket
+                        required:
+                            - uuid
+                            - kind
+                        properties:
+                            uuid:
+                                type: string
+                            kind:
+                                type: string
+                                example: "kind_name"

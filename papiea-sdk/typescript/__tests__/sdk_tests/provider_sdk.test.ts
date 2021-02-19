@@ -1311,7 +1311,7 @@ describe("Provider Sdk tests", () => {
         const test_object = sdk.new_kind(STATUS_ONLY_TEST_SCHEMA);
         sdk.version(provider_version);
         sdk.prefix("test_status_only_field_update_spec");
-        test_object.on_create({input_schema}, async (ctx, input) => {
+        test_object.on_create({input_schema: STATUS_ONLY_TEST_SCHEMA}, async (ctx, input) => {
             return {
                 spec: {
                     test: input.test

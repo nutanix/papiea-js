@@ -1,0 +1,9 @@
+Owner:
+    type: object
+    title: Owner
+    description: Owner for the entity
+    required:
+      - owner
+    properties:
+      owner:
+        type: string

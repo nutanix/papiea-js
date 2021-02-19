@@ -175,10 +175,11 @@ export async function filter_entity_iter(provider: string, kind: string, version
     return iter_func
 }
 
-export async function filter_entity(provider: string, kind: string, version: string, filter: any, papiea_url: string, s2skey: string, tracer: Tracer): Promise<FilterResults> {
+export async function filter_entity(provider: string, kind: string, version: string, filter: any, query: string, papiea_url: string, s2skey: string, tracer: Tracer): Promise<FilterResults> {
     const headers = getHeaders(s2skey)
     const span = spanOperation("filter_entity_client", {headers, tracer})
-    const res = await make_request(axios.post, `${ papiea_url }/services/${ provider }/${ version }/${ kind }/filter`, filter, {headers});
+    const query_val: string = (query === '' ? query : '?' + query);
+    const res = await make_request(axios.post, `${ papiea_url }/services/${ provider }/${ version }/${ kind }/filter${ query_val }`, filter, {headers});
     span.finish()
     return res.data
 }
@@ -261,7 +262,7 @@ export interface EntityCRUD {
 
     delete(entity_reference: Entity_Reference): Promise<void>
 
-    filter(filter: any): Promise<FilterResults>
+    filter(filter: any, query?: string): Promise<FilterResults>
 
     filter_iter(filter: any): Promise<(batch_size?: number, offset?: number) => AsyncGenerator<any, undefined, any>>
 
@@ -283,7 +284,7 @@ export function kind_client(papiea_url: string, provider: string, kind: string, 
         create: (payload: any) => create_entity(provider, kind, version, payload, papiea_url, the_s2skey, client_tracer),
         update: (metadata: Metadata, spec: Spec) => update_entity(provider, kind, version, spec, metadata, papiea_url, the_s2skey, client_tracer),
         delete: (entity_reference: Entity_Reference) => delete_entity(provider, kind, version, entity_reference, papiea_url, the_s2skey, client_tracer),
-        filter: (filter: any) => filter_entity(provider, kind, version, filter, papiea_url, the_s2skey, client_tracer),
+        filter: (filter: any, query: string = '') => filter_entity(provider, kind, version, filter, query, papiea_url, the_s2skey, client_tracer),
         filter_iter: (filter: any) => filter_entity_iter(provider, kind, version, filter, papiea_url, the_s2skey, client_tracer),
         list_iter: () => filter_entity_iter(provider, kind, version, {}, papiea_url, the_s2skey, client_tracer),
         invoke_procedure: (proc_name: string, entity_reference: Entity_Reference, input: any) => invoke_entity_procedure(provider, kind, version, proc_name, input, entity_reference, papiea_url, the_s2skey, client_tracer),

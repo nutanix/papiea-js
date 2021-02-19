@@ -23,12 +23,6 @@ class TestEntityOperations:
             return
 
         try:
-            await test_utils.cleanup()
-        except Exception as ex:
-            papiea_test.logger.debug("Failed cleanup : " + str(ex))
-            raise Exception("Cleanup operation failed : " + str(ex))
-
-        try:
             async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
                 bucket1_name = "test-bucket1"
 
@@ -38,6 +32,7 @@ class TestEntityOperations:
                 assert bucket1_entity.spec.name == bucket1_name
                 assert len(bucket1_entity.spec.objects) == 0
         finally:
+            await test_utils.cleanup()
             await sdk.server.close()
 
     @pytest.mark.asyncio
@@ -51,12 +46,6 @@ class TestEntityOperations:
             return
 
         try:
-            await test_utils.cleanup()
-        except Exception as ex:
-            papiea_test.logger.debug("Failed cleanup : " + str(ex))
-            raise Exception("Cleanup operation failed : " + str(ex))
-
-        try:
             async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
                 bucket1_name = "test-bucket1"
 
@@ -72,6 +61,7 @@ class TestEntityOperations:
                 assert bucket1_entity.spec.name == bucket1_name
                 assert len(bucket1_entity.spec.objects) == 0
         finally:
+            await test_utils.cleanup()
             await sdk.server.close()
 
     @pytest.mark.asyncio
@@ -83,12 +73,6 @@ class TestEntityOperations:
         except Exception as ex:
             papiea_test.logger.debug("Failed to setup/register sdk : " + str(ex))
             return
-
-        try:
-            await test_utils.cleanup()
-        except Exception as ex:
-            papiea_test.logger.debug("Failed cleanup : " + str(ex))
-            raise Exception("Cleanup operation failed : " + str(ex))
 
         try:
             async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
@@ -113,6 +97,7 @@ class TestEntityOperations:
                 assert bucket1_entity.spec.objects[0].reference.uuid == b1_object1_entity.metadata.uuid
                 assert b1_object1_entity.spec.content == ""
         finally:
+            await test_utils.cleanup()
             await sdk.server.close()
 
     @pytest.mark.asyncio
@@ -124,12 +109,6 @@ class TestEntityOperations:
         except Exception as ex:
             papiea_test.logger.debug("Failed to setup/register sdk : " + str(ex))
             return
-
-        try:
-            await test_utils.cleanup()
-        except Exception as ex:
-            papiea_test.logger.debug("Failed cleanup : " + str(ex))
-            raise Exception("Cleanup operation failed : " + str(ex))
 
         try:
             async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
@@ -154,6 +133,7 @@ class TestEntityOperations:
             papiea_test.logger.debug("Failed to perform entity operation : " + str(ex))
             assert str(ex) == "Object already exists in the bucket"
         finally:
+            await test_utils.cleanup()
             await sdk.server.close()
 
     @pytest.mark.asyncio
@@ -165,12 +145,6 @@ class TestEntityOperations:
         except Exception as ex:
             papiea_test.logger.debug("Failed to setup/register sdk : " + str(ex))
             return
-
-        try:
-            await test_utils.cleanup()
-        except Exception as ex:
-            papiea_test.logger.debug("Failed cleanup : " + str(ex))
-            raise Exception("Cleanup operation failed : " + str(ex))
 
         try:
             async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
@@ -216,6 +190,7 @@ class TestEntityOperations:
                 assert bucket2_entity.spec.objects[0].name == object2_name
                 assert bucket2_entity.spec.objects[0].reference.uuid == b1_object1_entity.metadata.uuid
         finally:
+            await test_utils.cleanup()
             await sdk.server.close()
 
     @pytest.mark.asyncio
@@ -227,12 +202,6 @@ class TestEntityOperations:
         except Exception as ex:
             papiea_test.logger.debug("Failed to setup/register sdk : " + str(ex))
             return
-
-        try:
-            await test_utils.cleanup()
-        except Exception as ex:
-            papiea_test.logger.debug("Failed cleanup : " + str(ex))
-            raise Exception("Cleanup operation failed : " + str(ex))
 
         try:
             async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
@@ -277,6 +246,7 @@ class TestEntityOperations:
                 assert bucket2_entity.spec.objects[0].name == object1_name
                 assert bucket2_entity.spec.objects[0].reference.uuid == b1_object1_entity.metadata.uuid
         finally:
+            await test_utils.cleanup()
             await sdk.server.close()
 
     @pytest.mark.asyncio
@@ -288,12 +258,6 @@ class TestEntityOperations:
         except Exception as ex:
             papiea_test.logger.debug("Failed to setup/register sdk : " + str(ex))
             return
-
-        try:
-            await test_utils.cleanup()
-        except Exception as ex:
-            papiea_test.logger.debug("Failed cleanup : " + str(ex))
-            raise Exception("Cleanup operation failed : " + str(ex))
 
         try:
             async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
@@ -333,6 +297,7 @@ class TestEntityOperations:
                 assert bucket1_entity.spec.objects[0].name == object1_name
                 assert bucket1_entity.spec.objects[0].reference.uuid == b1_object1_entity.metadata.uuid
         finally:
+            await test_utils.cleanup()
             await sdk.server.close()
 
     @pytest.mark.asyncio
@@ -344,12 +309,6 @@ class TestEntityOperations:
         except Exception as ex:
             papiea_test.logger.debug("Failed to setup/register sdk : " + str(ex))
             return
-
-        try:
-            await test_utils.cleanup()
-        except Exception as ex:
-            papiea_test.logger.debug("Failed cleanup : " + str(ex))
-            raise Exception("Cleanup operation failed : " + str(ex))
 
         try:
             async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
@@ -383,6 +342,7 @@ class TestEntityOperations:
             papiea_test.logger.debug("Failed to perform entity operation : " + str(ex))
             assert str(ex) == "Object already exists in the bucket"
         finally:
+            await test_utils.cleanup()
             await sdk.server.close()
 
     @pytest.mark.asyncio
@@ -394,12 +354,6 @@ class TestEntityOperations:
         except Exception as ex:
             papiea_test.logger.debug("Failed to setup/register sdk : " + str(ex))
             return
-
-        try:
-            await test_utils.cleanup()
-        except Exception as ex:
-            papiea_test.logger.debug("Failed cleanup : " + str(ex))
-            raise Exception("Cleanup operation failed : " + str(ex))
 
         try:
             async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
@@ -451,6 +405,7 @@ class TestEntityOperations:
             papiea_test.logger.debug("Failed to perform entity operation : " + str(ex))
             assert str(ex) == "Object already exists in the bucket"
         finally:
+            await test_utils.cleanup()
             await sdk.server.close()
 
     @pytest.mark.asyncio
@@ -462,12 +417,6 @@ class TestEntityOperations:
         except Exception as ex:
             papiea_test.logger.debug("Failed to setup/register sdk : " + str(ex))
             return
-
-        try:
-            await test_utils.cleanup()
-        except Exception as ex:
-            papiea_test.logger.debug("Failed cleanup : " + str(ex))
-            raise Exception("Cleanup operation failed : " + str(ex))
 
         try:
             async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
@@ -490,6 +439,7 @@ class TestEntityOperations:
             papiea_test.logger.debug("Failed to perform entity operation : " + str(ex))
             assert str(ex) == "Entity shouldfailuuid not found"
         finally:
+            await test_utils.cleanup()
             await sdk.server.close()
 
     @pytest.mark.asyncio
@@ -501,12 +451,6 @@ class TestEntityOperations:
         except Exception as ex:
             papiea_test.logger.debug("Failed to setup/register sdk : " + str(ex))
             return
-
-        try:
-            await test_utils.cleanup()
-        except Exception as ex:
-            papiea_test.logger.debug("Failed cleanup : " + str(ex))
-            raise Exception("Cleanup operation failed : " + str(ex))
 
         try:
             async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
@@ -553,6 +497,7 @@ class TestEntityOperations:
                 assert bucket1_entity.spec.objects[0].name == object1_name
                 assert bucket1_entity.spec.objects[0].reference.uuid == b1_object1_entity.metadata.uuid
         finally:
+            await test_utils.cleanup()
             await sdk.server.close()
 
     @pytest.mark.asyncio
@@ -564,12 +509,6 @@ class TestEntityOperations:
         except Exception as ex:
             papiea_test.logger.debug("Failed to setup/register sdk : " + str(ex))
             return
-
-        try:
-            await test_utils.cleanup()
-        except Exception as ex:
-            papiea_test.logger.debug("Failed cleanup : " + str(ex))
-            raise Exception("Cleanup operation failed : " + str(ex))
 
         try:
             async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
@@ -599,6 +538,7 @@ class TestEntityOperations:
 
                 assert len(bucket1_entity.spec.objects) == 0
         finally:
+            await test_utils.cleanup()
             await sdk.server.close()
 
     @pytest.mark.asyncio
@@ -610,12 +550,6 @@ class TestEntityOperations:
         except Exception as ex:
             papiea_test.logger.debug("Failed to setup/register sdk : " + str(ex))
             return
-
-        try:
-            await test_utils.cleanup()
-        except Exception as ex:
-            papiea_test.logger.debug("Failed cleanup : " + str(ex))
-            raise Exception("Cleanup operation failed : " + str(ex))
 
         try:
             async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
@@ -633,6 +567,7 @@ class TestEntityOperations:
             papiea_test.logger.debug("Failed to perform entity operation : " + str(ex))
             assert str(ex) == "Object not found in the bucket"
         finally:
+            await test_utils.cleanup()
             await sdk.server.close()
 
     @pytest.mark.asyncio
@@ -644,12 +579,6 @@ class TestEntityOperations:
         except Exception as ex:
             papiea_test.logger.debug("Failed to setup/register sdk : " + str(ex))
             return
-
-        try:
-            await test_utils.cleanup()
-        except Exception as ex:
-            papiea_test.logger.debug("Failed cleanup : " + str(ex))
-            raise Exception("Cleanup operation failed : " + str(ex))
 
         try:
             async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
@@ -667,6 +596,7 @@ class TestEntityOperations:
                 assert bucket_entity.spec.name == bucket1_name
                 assert len(bucket_entity.status.objects) == 0
         finally:
+            await test_utils.cleanup()
             await sdk.server.close()
 
     @pytest.mark.asyncio
@@ -678,12 +608,6 @@ class TestEntityOperations:
         except Exception as ex:
             papiea_test.logger.debug("Failed to setup/register sdk : " + str(ex))
             return
-
-        try:
-            await test_utils.cleanup()
-        except Exception as ex:
-            papiea_test.logger.debug("Failed cleanup : " + str(ex))
-            raise Exception("Cleanup operation failed : " + str(ex))
 
         try:
             async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
@@ -743,6 +667,7 @@ class TestEntityOperations:
                 assert len(b1_object1_entity.status.references) == 1
                 assert b1_object1_entity.status.references[0].bucket_name == new_bucket1_name
         finally:
+            await test_utils.cleanup()
             await sdk.server.close()
 
     @pytest.mark.asyncio
@@ -754,12 +679,6 @@ class TestEntityOperations:
         except Exception as ex:
             papiea_test.logger.debug("Failed to setup/register sdk : " + str(ex))
             return
-
-        try:
-            await test_utils.cleanup()
-        except Exception as ex:
-            papiea_test.logger.debug("Failed cleanup : " + str(ex))
-            raise Exception("Cleanup operation failed : " + str(ex))
 
         try:
             async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
@@ -799,6 +718,7 @@ class TestEntityOperations:
                 assert b1_object1_entity.status.references[0].object_name == object1_name
                 assert b1_object1_entity.status.references[0].bucket_reference.uuid == bucket1_entity.metadata.uuid
         finally:
+            await test_utils.cleanup()
             await sdk.server.close()
 
     @pytest.mark.asyncio
@@ -810,12 +730,6 @@ class TestEntityOperations:
         except Exception as ex:
             papiea_test.logger.debug("Failed to setup/register sdk : " + str(ex))
             return
-
-        try:
-            await test_utils.cleanup()
-        except Exception as ex:
-            papiea_test.logger.debug("Failed cleanup : " + str(ex))
-            raise Exception("Cleanup operation failed : " + str(ex))
 
         try:
             async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
@@ -870,6 +784,7 @@ class TestEntityOperations:
                 assert len(bucket1_entity.status.objects) == 0
                 assert len(object_list) == 0
         finally:
+            await test_utils.cleanup()
             await sdk.server.close()
 
     @pytest.mark.asyncio
@@ -881,12 +796,6 @@ class TestEntityOperations:
         except Exception as ex:
             papiea_test.logger.debug("Failed to setup/register sdk : " + str(ex))
             return
-
-        try:
-            await test_utils.cleanup()
-        except Exception as ex:
-            papiea_test.logger.debug("Failed cleanup : " + str(ex))
-            raise Exception("Cleanup operation failed : " + str(ex))
 
         try:
             async with papiea_test.get_client(papiea_test.OBJECT_KIND) as object_entity_client:
@@ -903,6 +812,7 @@ class TestEntityOperations:
                 assert object_entity.status.size == 4
                 assert len(object_entity.status.references) == 0
         finally:
+            await test_utils.cleanup()
             await sdk.server.close()
 
     @pytest.mark.asyncio
@@ -914,12 +824,6 @@ class TestEntityOperations:
         except Exception as ex:
             papiea_test.logger.debug("Failed to setup/register sdk : " + str(ex))
             return
-
-        try:
-            await test_utils.cleanup()
-        except Exception as ex:
-            papiea_test.logger.debug("Failed cleanup : " + str(ex))
-            raise Exception("Cleanup operation failed : " + str(ex))
 
         try:
             async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
@@ -964,4 +868,5 @@ class TestEntityOperations:
                     assert b1_object1_entity.spec.content == obj_content
                     assert callback_invoked == True
         finally:
+            await test_utils.cleanup()
             await sdk.server.close()

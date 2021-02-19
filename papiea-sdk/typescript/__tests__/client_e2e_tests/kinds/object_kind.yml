@@ -1,0 +1,34 @@
+object:
+    type: object
+    title: Object
+    description: Object structrure (similar to S3)
+    x-papiea-entity: differ
+    required:
+        - content
+    properties:
+        content:
+            type: string
+            description: Content stored in the object
+        size:
+            type: number
+            description: Size of the content stored in the object
+            x-papiea: status-only
+        last_modified:
+            type: string
+            description: Time at which the object's content were last modified
+            x-papiea: status-only
+        references:
+            type: array
+            description: Information about the objects which refer to this object
+            x-papiea: status-only
+            items:
+                type: object
+                required: ['bucket_name', 'object_name', 'bucket_reference']
+                properties:
+                    bucket_name:
+                        type: string
+                        description: Name of the bucket in which the object exists
+                    object_name:
+                        type: string
+                        description: Name of the object which refers to this object
+                    # bucket reference added in typescript code
