@@ -47,7 +47,7 @@ class SecurityApiImpl implements SecurityApi {
             const {data: user_info } = await this.provider.provider_api_axios.get(`${url}/auth/user_info`, {headers: {'Authorization': `Bearer ${this.s2s_key}`}});
             return user_info
         } catch (e) {
-            throw SecurityApiError.fromError(e, "Cannot get user info")
+            throw SecurityApiError.fromError(e, `Cannot get user info for provider`)
         }
     }
 
@@ -57,7 +57,7 @@ class SecurityApiImpl implements SecurityApi {
             const {data: keys } = await this.provider.provider_api_axios.get(`${url}/s2skey`, {headers: {'Authorization': `Bearer ${this.s2s_key}`}});
             return keys
         } catch (e) {
-            throw SecurityApiError.fromError(e, "Cannot list s2s keys")
+            throw SecurityApiError.fromError(e, `Cannot list s2s keys for provider`)
         }
     }
 
@@ -67,7 +67,7 @@ class SecurityApiImpl implements SecurityApi {
             const {data: s2skey } = await this.provider.provider_api_axios.post(`${url}/s2skey`, new_key, {headers: {'Authorization': `Bearer ${this.s2s_key}`}});
             return s2skey
         } catch (e) {
-            throw SecurityApiError.fromError(e, "Cannot create s2s key")
+            throw SecurityApiError.fromError(e, `Cannot create s2s key for provider`)
         }
     }
 
@@ -77,7 +77,7 @@ class SecurityApiImpl implements SecurityApi {
             const {data: r } = await this.provider.provider_api_axios.put(`${url}/s2skey`, {key: key_to_deactivate, active:false}, {headers: {'Authorization': `Bearer ${this.s2s_key}`}});
             return r
         } catch (e) {
-            throw SecurityApiError.fromError(e, "Cannot deactivate s2s key")
+            throw SecurityApiError.fromError(e, `Cannot deactivate s2s key for provider`)
         }
     }
 }
@@ -133,7 +133,7 @@ export class ProviderSdk implements ProviderImpl {
         if (this._provider !== null) {
             return this._provider
         } else {
-            throw Error("Provider not created")
+            throw Error("Failed to create provider")
         }
     }
 
@@ -175,7 +175,7 @@ export class ProviderSdk implements ProviderImpl {
 
     new_kind(entity_description: Data_Description): Kind_Builder {
         if (Object.keys(entity_description).length === 0) {
-            throw new Error("Wrong kind description specified")
+            throw new Error(`Kind registration is missing entity description for provider`)
         }
         const name = Object.keys(entity_description)[0];
         if (entity_description[name].hasOwnProperty("x-papiea-entity")) {
@@ -195,7 +195,7 @@ export class ProviderSdk implements ProviderImpl {
             this._kind.push(the_kind);
             return kind_builder;
         } else {
-            throw new Error(`Entity not a papiea entity. Please make sure you have 'x-papiea-entity' property for '${name}'`);
+            throw new Error(`Entity not a papiea entity. Please make sure you have 'x-papiea-entity' property in entity description for: ${name}`);
         }
     }
 
@@ -608,9 +608,9 @@ export class Kind_Builder {
         const name = `__${this.kind.name}_create`
         const loggerFactory = new LoggerFactory({logPath: name})
         const [logger, handle] = loggerFactory.createLogger()
-        logger.info("You are registering on create handler. Note, this is a post create handler. The behaviour is due to change")
+        logger.info(`You are registering on create handler for kind: ${this.kind.name}. Note, this is a post create handler. The behaviour is due to change`)
         if (!description.input_schema) {
-            logger.info("Input schema for on_create is undefined, using the kind's entity structure")
+            logger.info(`Input schema is undefined for on_create handler, using the schema for kind: ${this.kind.name}`)
             description.input_schema = this.kind.kind_structure
         }
         handle.cleanup()
@@ -622,7 +622,7 @@ export class Kind_Builder {
         const name = `__${this.kind.name}_delete`
         const loggerFactory = new LoggerFactory({logPath: name})
         const [logger, handle] = loggerFactory.createLogger()
-        logger.info("You are registering on delete handler. Note, this is a pre delete handler. The behaviour is due to change")
+        logger.info(`You are registering on delete handler for kind: ${this.kind.name}. Note, this is a pre delete handler. The behaviour is due to change`)
         handle.cleanup()
         this.kind_procedure(name, {}, handler)
         return this

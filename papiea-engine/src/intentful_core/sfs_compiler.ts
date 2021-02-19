@@ -1,5 +1,6 @@
 import { ValidationError } from "../errors/validation_error"
 import {DiffContent} from "papiea-core"
+import { PapieaException } from "../errors/papiea_exception";
 
 // TODO: add d.ts for type annotations
 const papi_clj = require("../../papiea-lib-clj/papiea-lib-clj.js").papiea_lib_clj;
@@ -11,19 +12,19 @@ const run_compiled_sfs = (compiled_sfs: any, spec: any, status: any) =>
     papi_clj.core.run_compiled_sfs(compiled_sfs, spec, status);
 
 export class SFSCompiler {
-    static try_parse_sfs(signature: string, kind_name: string): void {
+    static try_parse_sfs(sfs: string, provider_prefix: string, provider_version: string,kind_name: string): void {
         try {
-            sfs_parser(signature)
+            sfs_parser(sfs)
         } catch(e) {
             throw new ValidationError([
-                new Error(`SFS: '${signature}' parsing on kind: ${kind_name} failed with error: ${e.message}`)
+                new PapieaException(`SFS parsing on kind ${provider_prefix}/${provider_version}/${kind_name} failed with error: ${e.message}`, { provider_prefix: provider_prefix, provider_version: provider_version, kind_name: kind_name, additional_info: { "sfs": sfs }})
             ])
         }
     }
 
-    static try_compile_sfs(signature: string, kind: string): any {
-        this.try_parse_sfs(signature, kind)
-        return sfs_compiler(signature)
+    static try_compile_sfs(sfs: string, kind: string, provider_prefix: string = '', provider_version: string = ''): any {
+        this.try_parse_sfs(sfs, provider_prefix, provider_version, kind)
+        return sfs_compiler(sfs)
     }
 
     static run_sfs(compiled_sfs: any, spec: any, status: any): DiffContent[] | null {

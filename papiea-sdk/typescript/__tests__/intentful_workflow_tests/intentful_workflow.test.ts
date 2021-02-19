@@ -990,6 +990,7 @@ describe("Intentful Workflow test sfs validation", () => {
 
     test("Registering provider with wrong sfs shouldn't pass", async () => {
         expect.assertions(2);
+        let kind_name: string = ''
         const sdk = ProviderSdk.create_provider(papieaUrl, adminKey, server_config.host, server_config.port);
         try {
             provider_prefix = "location_provider_intentful_fail_validation"
@@ -1006,11 +1007,11 @@ describe("Intentful Workflow test sfs validation", () => {
                     status: { x: entity.spec.x }
                 })
             })
+            kind_name = location.kind.name
             await sdk.register();
         } catch (e) {
             expect(e.response.status).toEqual(400)
-            expect(e.response.data.error.errors[ 0 ].message).toContain("SFS: 'wrong, wrong2' parsing on kind:" +
-                ` ${Object.keys(locationDataDescription)[0]} failed with error: Parse error at line 1,`)
+            expect(e.response.data.error.errors[ 0 ].message).toContain(`SFS parsing on kind ${provider_prefix}/${provider_version}/${kind_name} failed with error: Parse error at line 1,`)
         } finally {
             sdk.cleanup()
         }

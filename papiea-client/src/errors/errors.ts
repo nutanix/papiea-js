@@ -8,6 +8,10 @@ export class PapieaErrorImpl extends Error {
 
 }
 
+// Base exception received from papiea
+export class PapieaException extends PapieaErrorImpl {
+
+}
 
 // Spec with this version already exists
 export class ConflictingEntityError extends PapieaErrorImpl {

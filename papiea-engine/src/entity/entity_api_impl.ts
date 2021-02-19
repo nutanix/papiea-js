@@ -20,6 +20,7 @@ import {
 } from "papiea-core"
 import {ProcedureInvocationError} from "../errors/procedure_invocation_error"
 import {PermissionDeniedError} from "../errors/permission_error"
+import {PapieaException} from "../errors/papiea_exception"
 import {Logger, RequestContext, getTraceHeaders, spanOperation} from "papiea-backend-utils"
 import {IntentfulContext} from "../intentful_core/intentful_context"
 import {Provider_DB} from "../databases/provider_db_interface"
@@ -154,14 +155,14 @@ export class Entity_API_Impl implements Entity_API {
     async update_entity_spec(user: UserAuthInfo, uuid: uuid4, prefix: string, spec_version: number, extension: {[key: string]: any}, kind_name: string, version: Version, spec_description: Spec, ctx: RequestContext): Promise<IntentWatcher | null> {
         const provider = await this.get_provider(prefix, version, ctx);
         const kind = this.providerDb.find_kind(provider, kind_name);
-        this.validator.validate_spec(spec_description, kind, provider.allowExtraProps);
+        this.validator.validate_spec(provider, spec_description, kind, provider.allowExtraProps);
         const entity_ref: Provider_Entity_Reference = { kind: kind_name, uuid: uuid, provider_prefix: prefix, provider_version: version };
         const metadata: Metadata = (await this.spec_db.get_spec(entity_ref))[0];
         await this.authorizer.checkPermission(user, {"metadata": metadata}, Action.Update, provider);
         metadata.spec_version = spec_version;
         metadata.provider_prefix = prefix
         metadata.provider_version = version
-        const strategy = this.intentfulCtx.getIntentfulStrategy(kind, user)
+        const strategy = this.intentfulCtx.getIntentfulStrategy(provider, kind, user)
         const watcher = await strategy.update(metadata, spec_description, ctx)
         return watcher;
     }
@@ -173,7 +174,7 @@ export class Entity_API_Impl implements Entity_API {
         const [metadata, spec] = await this.spec_db.get_spec(entity_ref);
         const [_, status] = await this.status_db.get_status(entity_ref);
         await this.authorizer.checkPermission(user, {"metadata": metadata}, Action.Delete, provider);
-        const strategy = this.intentfulCtx.getIntentfulStrategy(kind, user)
+        const strategy = this.intentfulCtx.getIntentfulStrategy(provider, kind, user)
         await strategy.delete({ metadata, spec, status }, ctx)
     }
 
@@ -185,16 +186,17 @@ export class Entity_API_Impl implements Entity_API {
             user, prefix, version, kind_name, entity_uuid, ctx);
         const procedure: Procedural_Signature | undefined = kind.entity_procedures[procedure_name];
         if (procedure === undefined) {
-            throw new Error(`Procedure ${procedure_name} not found for kind ${kind.name}`);
+            throw new PapieaException(`Entity procedure not found for kind ${prefix}/${version}/${kind.name}`, { provider_prefix: prefix, provider_version: version, kind_name: kind.name, additional_info: { "procedure_name": procedure_name }});
         }
         const schemas: any = {};
         Object.assign(schemas, procedure.argument);
         Object.assign(schemas, procedure.result);
         try {
-            this.validator.validate(input, Object.values(procedure.argument)[0], schemas,
+            this.validator.validate(provider.prefix, provider.version, kind.name,
+                input, Object.values(procedure.argument)[0], schemas,
                 provider.allowExtraProps, Object.keys(procedure.argument)[0], procedure_name);
         } catch (err) {
-            throw ProcedureInvocationError.fromError(err, 400)
+            throw ProcedureInvocationError.fromError(err, { provider_prefix: prefix, provider_version: version, kind_name: kind_name, additional_info: { "procedure_name": procedure_name }}, 400)
         }
         try {
             const span = spanOperation(`entity_procedure_${procedure_name}`,
@@ -210,31 +212,33 @@ export class Entity_API_Impl implements Entity_API {
                     headers: {...getTraceHeaders(ctx.tracing_ctx.headers), ...user}
                 });
             span.finish()
-            this.validator.validate(data, Object.values(procedure.result)[0], schemas,
+            this.validator.validate(provider.prefix, provider.version, kind.name,
+                data, Object.values(procedure.result)[0], schemas,
                 provider.allowExtraProps, Object.keys(procedure.argument)[0], procedure_name);
             return data;
         } catch (err) {
-            throw ProcedureInvocationError.fromError(err)
+            throw ProcedureInvocationError.fromError(err, { provider_prefix: prefix, provider_version: version, kind_name: kind.name, additional_info: { "procedure_name": procedure_name }})
         }
     }
 
     async call_provider_procedure(user: UserAuthInfo, prefix: string, version: Version, procedure_name: string, input: any, ctx: RequestContext): Promise<any> {
         const provider = await this.get_provider(prefix, version, ctx);
         if (provider.procedures === undefined) {
-            throw new Error(`Procedure ${procedure_name} not found for provider ${prefix}`);
+            throw new PapieaException(`No provider procedures exist for provider ${prefix}/${version}`, { provider_prefix: prefix, provider_version: version });
         }
         const procedure: Procedural_Signature | undefined = provider.procedures[procedure_name];
         if (procedure === undefined) {
-            throw new Error(`Procedure ${procedure_name} not found for provider ${prefix}`);
+            throw new PapieaException(`Provider procedure not found for provider ${prefix}/${version}`,  { provider_prefix: prefix, provider_version: version, additional_info: { "procedure_name": procedure_name }});
         }
         const schemas: any = {};
         Object.assign(schemas, procedure.argument);
         Object.assign(schemas, procedure.result);
         try {
-            this.validator.validate(input, Object.values(procedure.argument)[0], schemas,
+            this.validator.validate(provider.prefix, provider.version, 'ProviderProcedure',
+                input, Object.values(procedure.argument)[0], schemas,
                 provider.allowExtraProps, Object.keys(procedure.argument)[0], procedure_name);
         } catch (err) {
-            throw ProcedureInvocationError.fromError(err, 400)
+            throw ProcedureInvocationError.fromError(err, { provider_prefix: prefix, provider_version: version, additional_info: { "procedure_name": procedure_name }}, 400)
         }
         try {
             const span = spanOperation(`provider_procedure_${procedure_name}`,
@@ -246,11 +250,12 @@ export class Entity_API_Impl implements Entity_API {
                     headers: {...getTraceHeaders(ctx.tracing_ctx.headers), ...user}
                 });
             span.finish()
-            this.validator.validate(data, Object.values(procedure.result)[0], schemas,
+            this.validator.validate(provider.prefix, provider.version, 'ProviderProcedure',
+                data, Object.values(procedure.result)[0], schemas,
                 provider.allowExtraProps, Object.keys(procedure.argument)[0], procedure_name);
             return data;
         } catch (err) {
-            throw ProcedureInvocationError.fromError(err)
+            throw ProcedureInvocationError.fromError(err, { provider_prefix: prefix, provider_version: version, additional_info: { "procedure_name": procedure_name }})
         }
     }
 
@@ -259,16 +264,17 @@ export class Entity_API_Impl implements Entity_API {
         const kind = this.providerDb.find_kind(provider, kind_name);
         const procedure: Procedural_Signature | undefined = kind.kind_procedures[procedure_name];
         if (procedure === undefined) {
-            throw new Error(`Procedure ${procedure_name} not found for kind ${kind.name}`);
+            throw new PapieaException(`Kind procedure not found for kind  ${prefix}/${version}/${kind_name}`, { provider_prefix: prefix, provider_version: version, kind_name: kind_name, additional_info: { "procedure_name": procedure_name }});
         }
         const schemas: any = {};
         Object.assign(schemas, procedure.argument);
         Object.assign(schemas, procedure.result);
         try {
-            this.validator.validate(input, Object.values(procedure.argument)[0], schemas,
+            this.validator.validate(provider.prefix, provider.version, kind.name,
+                input, Object.values(procedure.argument)[0], schemas,
                 provider.allowExtraProps, Object.keys(procedure.argument)[0], procedure_name);
         } catch (err) {
-            throw ProcedureInvocationError.fromError(err, 400)
+            throw ProcedureInvocationError.fromError(err, { provider_prefix: prefix, provider_version: version, kind_name: kind_name, additional_info: { "procedure_name": procedure_name }}, 400)
         }
         try {
             const span = spanOperation(`kind_procedure_${procedure_name}`,
@@ -280,11 +286,12 @@ export class Entity_API_Impl implements Entity_API {
                     headers: {...getTraceHeaders(ctx.tracing_ctx.headers), ...user}
                 });
             span.finish()
-            this.validator.validate(data, Object.values(procedure.result)[0], schemas,
+            this.validator.validate(provider.prefix, provider.version, kind.name,
+                data, Object.values(procedure.result)[0], schemas,
                 provider.allowExtraProps, Object.keys(procedure.argument)[0], procedure_name);
             return data;
         } catch (err) {
-            throw ProcedureInvocationError.fromError(err)
+            throw ProcedureInvocationError.fromError(err, { provider_prefix: prefix, provider_version: version, kind_name: kind_name, additional_info: { "procedure_name": procedure_name }})
         }
     }
 
@@ -304,7 +311,7 @@ export class Entity_API_Impl implements Entity_API {
             if (has_perm) {
                 return {"success": "Ok"}
             } else {
-                throw new PermissionDeniedError()
+                throw new PermissionDeniedError(`User does not have create permission on entity of kind ${entityRef.provider_prefix}/${entityRef.provider_version}/${entityRef.kind}`, { provider_prefix: entityRef.provider_prefix, provider_version: entityRef.provider_version, kind_name: entityRef.kind, additional_info: { "entity_uuid": entityRef.uuid, "user": JSON.stringify(user) }})
             }
         } else {
             const [metadata, _] = await this.spec_db.get_spec(entityRef);
@@ -312,7 +319,7 @@ export class Entity_API_Impl implements Entity_API {
             if (has_perm) {
                 return {"success": "Ok"}
             } else {
-                throw new PermissionDeniedError()
+                throw new PermissionDeniedError(`User does not have permission on entity of kind ${entityRef.provider_prefix}/${entityRef.provider_version}/${entityRef.kind}`, { provider_prefix: entityRef.provider_prefix, provider_version: entityRef.provider_version, kind_name: entityRef.kind, additional_info: { "entity_uuid": entityRef.uuid, "user": JSON.stringify(user), "action": action }})
             }
         }
     }
@@ -331,7 +338,7 @@ export class Entity_API_Impl implements Entity_API {
         if (has_perm) {
             return { "success": "Ok" }
         } else {
-            throw new PermissionDeniedError()
+            throw new PermissionDeniedError(`User does not have permission to one or all of the entities for provider ${provider.prefix}/${provider.version}`, { provider_prefix: provider.prefix, provider_version: provider.version, additional_info: { "user": JSON.stringify(user) }})
         }
     }
 

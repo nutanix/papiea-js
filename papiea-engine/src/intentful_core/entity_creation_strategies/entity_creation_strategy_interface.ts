@@ -18,6 +18,7 @@ import {Validator} from "../../validator"
 import uuid = require("uuid")
 import {Authorizer} from "../../auth/authz"
 import {RequestContext} from "papiea-backend-utils"
+import { PapieaException } from "../../errors/papiea_exception"
 
 export interface EntityCreationResult {
     intent_watcher: IntentWatcher | null,
@@ -68,7 +69,7 @@ export abstract class EntityCreationStrategy {
         } catch (e) {
             // Hiding details of the error for security reasons
             // since it is not supposed to occur under normal circumstances
-            throw new Error("uuid is not valid")
+            throw new PapieaException(`Entity has invalid uuid for kind ${provider.prefix}/${provider.version}/${kind_name}`, { provider_prefix: provider.prefix, provider_version: provider.version, kind_name: kind_name, additional_info: { "entity_uuid": uuid }})
         }
     }
 
@@ -80,13 +81,13 @@ export abstract class EntityCreationStrategy {
             if (this.kind.uuid_validation_pattern === undefined) {
                 request_metadata.uuid = uuid();
             } else {
-                throw new Error("Uuid is not provided, but supposed to be since validation pattern is specified")
+                throw new PapieaException(`Metadata uuid is undefined but kind ${request_metadata.provider_prefix}/${request_metadata.provider_version}/${request_metadata.kind} has validation pattern set`, { provider_prefix: request_metadata.provider_prefix, provider_version: request_metadata.provider_version, kind_name: request_metadata.kind, additional_info: { "entity_uuid": request_metadata.uuid, "uuid_validation_pattern": this.kind.uuid_validation_pattern}})
             }
         } else {
             const result = await this.get_existing_entities(this.provider, request_metadata.uuid, request_metadata.kind)
             if (result.length !== 0) {
                 const [metadata, spec, status] = result
-                throw new ConflictingEntityError("An entity with this uuid already exists", metadata, spec, status)
+                throw new ConflictingEntityError(`Entity already exists`, metadata, spec, status)
             }
         }
         if (request_metadata.spec_version === undefined || request_metadata.spec_version === null) {
@@ -104,7 +105,7 @@ export abstract class EntityCreationStrategy {
 
     protected validate_entity(entity: Entity) {
         this.validator.validate_metadata_extension(this.provider.extension_structure, entity.metadata, this.provider.allowExtraProps);
-        this.validator.validate_spec(entity.spec, this.kind, this.provider.allowExtraProps)
+        this.validator.validate_spec(this.provider, entity.spec, this.kind, this.provider.allowExtraProps)
         this.validator.validate_uuid(this.kind, entity.metadata.uuid)
         this.validator.validate_status(this.provider, entity.metadata, entity.status)
     }

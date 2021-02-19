@@ -72,7 +72,7 @@ export class ProceduralCtx implements ProceduralCtx_Interface {
             status: status
         });
         if (res.status != 200) {
-            this.get_logger().error("Could not update status:", entity_reference, status, res.status, res.data);
+            this.get_logger().error(`Could not update status: ${JSON.stringify(status)} for entity with uuid: ${entity_reference.uuid} kind: ${entity_reference.kind} in provider with prefix: ${provider_prefix} and version: ${provider_version}`);
             return false
         }
         return true
@@ -89,13 +89,13 @@ export class ProceduralCtx implements ProceduralCtx_Interface {
      * @deprecated Will be deleted in version 0.11.0. Use update_status instead.
     */
     async replace_status(entity_reference: Entity_Reference, status: Status, provider_prefix: string = this.provider.get_prefix(), provider_version: Version = this.provider.get_version()): Promise<boolean> {
-        this.get_logger().warn("Calling a deprecated method!!!")
+        this.get_logger().warn("Calling a deprecated method [replace_status]!!!")
         const res = await this.providerApiAxios.post(`${this.provider_url}/${provider_prefix}/${provider_version}/update_status`,{
             entity_ref: entity_reference,
             status: status
         });
         if (res.status != 200) {
-            this.get_logger().error("Could not update status:", entity_reference, status, res.status, res.data);
+            this.get_logger().error(`Could not update status: ${JSON.stringify(status)} for entity with uuid: ${entity_reference.uuid} kind: ${entity_reference.kind} in provider with prefix: ${provider_prefix} and version: ${provider_version}`);
             return false
         }
         return true
@@ -120,7 +120,7 @@ export class ProceduralCtx implements ProceduralCtx_Interface {
             if (parts[0] === 'Bearer')
                 return parts[1]
         }
-        throw new Error("No invoking user")
+        throw new Error("Request has invalid user authorization info")
     }
 
     get_logger(level?: LogLevel): Logger {

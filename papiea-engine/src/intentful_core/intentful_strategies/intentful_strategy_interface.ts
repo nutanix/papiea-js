@@ -9,6 +9,7 @@ import {
     GraveyardConflictingEntityError
 } from "../../databases/utils/errors"
 import {RequestContext, spanOperation} from "papiea-backend-utils"
+import {UnauthorizedError} from "../../errors/permission_error"
 
 export abstract class IntentfulStrategy {
     protected readonly specDb: Spec_DB
@@ -52,7 +53,7 @@ export abstract class IntentfulStrategy {
         if (this.kind) {
             if (this.kind.kind_procedures[procedure_name]) {
                 if (this.user === undefined) {
-                    throw OnActionError.create("User not specified", procedure_name, this.kind.name)
+                    throw new UnauthorizedError(`No user provided in the delete entity request for kind ${entity.metadata?.provider_prefix}/${entity.metadata?.provider_version}/${entity.metadata?.kind}`, { provider_prefix: entity.metadata?.provider_prefix, provider_version: entity.metadata?.provider_version, kind_name: entity.metadata?.kind, additional_info: { "entity_uuid": entity.metadata?.uuid ?? '', "procedure_name": procedure_name }})
                 }
                 try {
                     const span = spanOperation(`destructor`,
@@ -64,11 +65,11 @@ export abstract class IntentfulStrategy {
                     span.finish()
                     return data
                 } catch (e) {
-                    throw OnActionError.create(e.response.data.message, procedure_name, this.kind.name)
+                    throw OnActionError.create(e.response.data.message, procedure_name, { provider_prefix: entity.metadata?.provider_prefix, provider_version: entity.metadata?.provider_version, kind_name: entity.metadata?.kind, additional_info: { "entity_uuid": entity.metadata?.uuid ?? '', "procedure_name": procedure_name }})
                 }
             }
         } else {
-            throw OnActionError.create("Insufficient params specified", procedure_name)
+            throw OnActionError.create(`Could not delete the entity since kind ${entity.metadata?.provider_prefix}/${entity.metadata?.provider_version}/${entity.metadata?.kind} is not registered`, procedure_name, { provider_prefix: entity.metadata?.provider_prefix, provider_version: entity.metadata?.provider_version, kind_name: entity.metadata?.kind, additional_info: { "entity_uuid": entity.metadata?.uuid ?? '', "procedure_name": procedure_name }})
         }
     }
 

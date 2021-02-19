@@ -26,7 +26,7 @@ export class IntentfulListenerMongoStream implements IntentfulListener {
         try {
             await this._run()
         } catch (e) {
-            console.error(e)
+            console.error(`Run method for intentful listener mongo stream failed: ${e}`)
             throw e
         }
     }

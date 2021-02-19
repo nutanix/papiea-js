@@ -53,7 +53,7 @@ export class DiffResolver {
         try {
             await this._run(delay)
         } catch (e) {
-            console.error(e)
+            console.error(`Error in run method for diff resolver: ${e}`)
             throw e
         }
     }
@@ -114,7 +114,7 @@ export class DiffResolver {
                 metadata, provider, kind, spec, status,
             };
         } catch (e) {
-            this.logger.debug(`Couldn't rediff entity with uuid ${entry_reference.entity_reference.uuid}: ${e}. Removing from watchlist`)
+            this.logger.debug(`Couldn't generate diff for entity with uuid: ${entry_reference.entity_reference.uuid} and kind: ${entry_reference.entity_reference.kind} due to error: ${e}. Removing from watchlist`)
             return null
         }
     }
@@ -175,7 +175,7 @@ export class DiffResolver {
             }
 
             let [entry_reference, diff_results] = entries[key]
-            this.logger.debug(`Diff engine processing ${entry_reference.provider_reference.provider_prefix}/${entry_reference.provider_reference.provider_version}/${entry_reference.entity_reference.kind} entity with uuid: ${entry_reference.entity_reference.uuid}`)
+            this.logger.debug(`Diff engine resolving diffs for entity with uuid: ${entry_reference.entity_reference.uuid} and kind: ${entry_reference.entity_reference.kind}`)
             let rediff: RediffResult | null = await this.rediff(entry_reference)
             if (!rediff) {
                 await this.removeFromWatchlist(entry_reference)
@@ -219,7 +219,7 @@ export class DiffResolver {
         try {
             [next_diff, idx] = diff_selection_strategy.selectOne(diffs)
         } catch (e) {
-            this.logger.debug(`Entity with uuid ${metadata!.uuid}: ${e}`)
+            this.logger.debug(`Failed to select diff for entity with uuid: ${metadata!.uuid} and kind: ${metadata!.kind} due to error: ${e}`)
             return null
         }
         const backoff: Backoff | null = diff_results[idx][1]
@@ -228,10 +228,10 @@ export class DiffResolver {
             try {
                 const delay = await this.launchOperation({diff: next_diff, ...rediff})
                 const backoff = this.createDiffBackoff(kind, delay)
-                this.logger.info(`Starting to resolve diff for ${provider.prefix}/${provider.version}/${kind.name} entity with uuid: ${metadata!.uuid}`)
+                this.logger.info(`Starting to resolve diff for entity with uuid: ${metadata!.uuid} and kind: ${metadata!.kind}`)
                 diff_results[idx][1] = backoff
             } catch (e) {
-                this.logger.debug(`Couldn't invoke handler for entity with uuid ${metadata!.uuid}: ${e}`)
+                this.logger.debug(`Couldn't invoke intent handler to resolve diff for entity with uuid: ${metadata!.uuid} and kind: ${metadata!.kind} due to error: ${e}`)
                 const backoff = this.createDiffBackoff(kind, null)
                 diff_results[idx][1] = backoff
             }
@@ -243,14 +243,14 @@ export class DiffResolver {
                 if (diff_index !== -1) {
                     try {
                         if (!await this.checkHealthy(diff_results[idx][0])) {
-                            this.logger.debug(`Handler for entity with uuid: ${metadata!.uuid} health check has failed.`)
+                            this.logger.debug(`Handler for entity with uuid: ${metadata!.uuid} and kind: ${metadata!.kind} health check has failed.`)
                             return
                         }
-                        this.logger.info(`Starting to retry resolving diff for entity with uuid: ${rediff.metadata!.uuid}`)
+                        this.logger.info(`Starting to retry resolving diff for entity with uuid: ${rediff.metadata!.uuid} and kind: ${rediff.metadata!.kind}`)
                         const delay = await this.launchOperation({diff: rediff.diffs[diff_index], ...rediff})
                         diff_results[idx][1] = this.incrementDiffBackoff(backoff, delay, rediff.kind)
                     } catch (e) {
-                        this.logger.debug(`Couldn't invoke retry handler for entity with uuid ${rediff.metadata!.uuid}: ${e}`)
+                        this.logger.debug(`Couldn't invoke retry intent handler for entity with uuid: ${rediff.metadata!.uuid} and: kind ${rediff.kind!.name} due to error: ${e}`)
                         diff_results[idx][1] = this.incrementDiffBackoff(backoff, null, rediff.kind)
                     }
                 }

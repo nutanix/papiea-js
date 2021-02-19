@@ -121,7 +121,7 @@ describe("Procedures tests", () => {
             const res = err.response;
             expect(res.status).toEqual(400);
             expect(res.data.error.errors.length).toEqual(1);
-            expect(res.data.error.errors[0].message).toBe("moveX with schema MoveInput was expecting non-empty input");
+            expect(res.data.error.errors[0].message).toContain(`Procedure was expecting non-empty object, received null/empty object`);
         }
     });
     test("Procedure result validation", async () => {
@@ -155,8 +155,8 @@ describe("Procedures tests", () => {
             expect(res.data.error.errors.length).toEqual(2);
             expect(res.data.error.message).toEqual("Procedure invocation failed.")
             expect(res.data.error.code).toEqual(500)
-            expect(res.data.error.errors[0].message).toEqual("x is a required field");
-            expect(res.data.error.errors[1].message).toEqual("y is a required field");
+            expect(res.data.error.errors[0].message).toContain(`Received procedure input is missing required field: x`);
+            expect(res.data.error.errors[1].message).toContain(`Received procedure input is missing required field: y`);
         }
     });
 

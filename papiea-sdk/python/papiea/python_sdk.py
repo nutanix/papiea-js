@@ -92,7 +92,7 @@ class SecurityApi(object):
             )
             return res
         except Exception as e:
-            raise SecurityApiError.from_error(e, "Cannot get user info")
+            raise SecurityApiError.from_error(e, f"Cannot get user info for provider with prefix: {self.provider.get_prefix()} and version: {self.provider.get_version()} and s2skey: {self.s2s_key}")
 
     async def list_keys(self) -> List[S2SKey]:
         try:
@@ -102,7 +102,7 @@ class SecurityApi(object):
             )
             return res
         except Exception as e:
-            raise SecurityApiError.from_error(e, "Cannot list s2s keys")
+            raise SecurityApiError.from_error(e, f"Cannot list s2s keys for provider with prefix: {self.provider.get_prefix()} and version: {self.provider.get_version()} and s2skey: {self.s2s_key}")
 
     async def create_key(self, new_key: CreateS2SKeyRequest) -> S2SKey:
         try:
@@ -114,7 +114,7 @@ class SecurityApi(object):
             )
             return res
         except Exception as e:
-            raise SecurityApiError.from_error(e, "Cannot create s2s key")
+            raise SecurityApiError.from_error(e, f"Cannot create s2s key for provider with prefix: {self.provider.get_prefix()} and version: {self.provider.get_version()} and s2skey: {self.s2s_key}")
 
     async def deactivate_key(self, key_to_deactivate: str) -> Any:
         try:
@@ -126,7 +126,7 @@ class SecurityApi(object):
             )
             return res
         except Exception as e:
-            raise SecurityApiError.from_error(e, "Cannot deactivate s2s key")
+            raise SecurityApiError.from_error(e, f"Cannot deactivate s2s key for provider with prefix: {self.provider.get_prefix()} and version: {self.provider.get_version()} and s2skey: {self.s2s_key}")
 
 
 class ProviderSdk(object):
@@ -184,7 +184,7 @@ class ProviderSdk(object):
         if self._provider is not None:
             return self._provider
         else:
-            raise Exception("Provider not created")
+            raise Exception("Failed to create provider")
 
     @property
     def provider_url(self) -> str:
@@ -216,11 +216,11 @@ class ProviderSdk(object):
 
     def new_kind(self, entity_description: DataDescription) -> "KindBuilder":
         if len(entity_description) == 0:
-            raise Exception("Wrong kind description specified")
+            raise Exception(f"Kind registration is missing entity description for provider with prefix: {self.provider.get_prefix()} and version: {self.provider.get_version()}")
         for name in entity_description:
             if "x-papiea-entity" not in entity_description[name]:
                 raise Exception(
-                    f"Entity not a papiea entity. Please make sure you have 'x-papiea-entity' property for '{name}'"
+                    f"Entity not a papiea entity. Please make sure you have 'x-papiea-entity' property in entity description for kind: ${name}"
                 )
             the_kind = Kind(
                 name=name,

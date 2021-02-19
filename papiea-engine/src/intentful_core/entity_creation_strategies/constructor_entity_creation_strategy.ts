@@ -24,6 +24,7 @@ import deepEqual = require("deep-equal")
 import uuid = require("uuid")
 import {RequestContext, spanOperation} from "papiea-backend-utils"
 import {UnauthorizedError} from "../../errors/permission_error"
+import {PapieaException} from "../../errors/papiea_exception"
 
 export class ConstructorEntityCreationStrategy extends EntityCreationStrategy {
     protected differ: Differ
@@ -48,10 +49,18 @@ export class ConstructorEntityCreationStrategy extends EntityCreationStrategy {
     public async create(input: any, ctx: RequestContext): Promise<EntityCreationResult> {
         const entity = await this.invoke_constructor(`__${this.kind.name}_create`, input, ctx)
         entity.metadata = await this.create_metadata(entity.metadata ?? {})
-        await this.validate_entity(entity)
+        try {
+            this.validate_entity(entity)
+        } catch (err) {
+            if (err instanceof ValidationError) {
+                throw OnActionError.create(`Entity returned by the custom constructor of kind ${this.provider.prefix}/${this.provider.version}/${this.kind.name} is not valid due to errors: ${(err as ValidationError).errors}`, `__${this.kind.name}_create`, { provider_prefix: this.provider.prefix, provider_version: this.provider.version, kind_name: this.kind.name, additional_info: { "entity_uuid": entity.metadata.uuid, "procedure_name": `__${this.kind.name}_create` }})
+            } else {
+                throw err
+            }
+        }
         const spec_status_equal = deepEqual(entity.spec, entity.status)
         if (!spec_status_equal && this.kind.intentful_behaviour === IntentfulBehaviour.SpecOnly) {
-            throw OnActionError.create("Spec-only entity constructor returned spec not matching status", "Constructor", this.kind.name)
+            throw OnActionError.create(`Spec-only entity constructor returned of kind ${this.provider.prefix}/${this.provider.version}/${this.kind.name} spec not matching status`, `__${this.kind.name}_create`, { provider_prefix: this.provider.prefix, provider_version: this.provider.version, kind_name: this.kind.name, additional_info: { "entity_uuid": entity.metadata.uuid, "procedure_name": `__${this.kind.name}_create` }})
         }
         const span = spanOperation(`save_entity_db`,
                                    ctx.tracing_ctx)
@@ -97,14 +106,15 @@ export class ConstructorEntityCreationStrategy extends EntityCreationStrategy {
             const constructor = this.kind.kind_procedures[procedure_name]
             if (constructor !== undefined && constructor !== null) {
                 if (this.user === undefined) {
-                    throw new UnauthorizedError()
+                    throw new UnauthorizedError(`No user provided in the create entity request for kind ${this.provider.prefix}/${this.provider.version}/${this.kind.name}`, { provider_prefix: this.provider.prefix, provider_version: this.provider.version, kind_name: this.kind.name, additional_info: { "procedure_name": procedure_name }})
                 }
                 try {
                     const schemas: any = {}
                     Object.assign(schemas, constructor.argument)
-                    this.validator.validate(input, Object.values(constructor.argument)[0], schemas,
+                    this.validator.validate(this.provider.prefix, this.provider.version, this.kind.name,
+                                            input, Object.values(constructor.argument)[0], schemas,
                                             this.provider.allowExtraProps,
-                                            Object.keys(constructor.argument)[0], "Constructor procedure")
+                                            Object.keys(constructor.argument)[0], "Custom Constructor")
                     const span = spanOperation(`custom_constructor`,
                                                ctx.tracing_ctx)
                     const {data} = await axios.post<Entity>(this.kind.kind_procedures[procedure_name].procedure_callback, {
@@ -116,22 +126,22 @@ export class ConstructorEntityCreationStrategy extends EntityCreationStrategy {
                     if (e instanceof ValidationError) {
                         throw e
                     } else {
-                        throw OnActionError.create(e.response.data.message, procedure_name, this.kind.name)
+                        throw OnActionError.create(e.response.data.message, procedure_name, { provider_prefix: this.provider.prefix, provider_version: this.provider.version, kind_name: this.kind.name, additional_info: { "procedure_name": procedure_name }})
                     }
                 }
                 if (
                     entity.spec === undefined || entity.spec === null ||
                     entity.status === undefined || entity.status === null
                 ) {
-                    throw OnActionError.create("Constructor didn't provide full entity", procedure_name, this.kind.name)
+                    throw OnActionError.create(`Constructor return value is missing the spec or status field for entity of kind ${this.provider.prefix}/${this.provider.version}/${this.kind.name}`, procedure_name, { provider_prefix: this.provider.prefix, provider_version: this.provider.version, kind_name: this.kind.name, additional_info: { "procedure_name": procedure_name }})
                 }
                 return entity
             } else {
                 // We should not reach this exception under normal condition because of pre checks while choosing strategy
-                throw new Error("Entity creation was expecting a constructor but couldn't find it")
+                throw new PapieaException(`Entity creation was expecting a constructor but couldn't find it for kind ${this.provider.prefix}/${this.provider.version}/${this.kind.name}`, { provider_prefix: this.provider.prefix, provider_version: this.provider.version, kind_name: this.kind.name, additional_info: { "procedure_name": procedure_name }})
             }
         } else {
-            throw OnActionError.create("Insufficient params specified", procedure_name)
+            throw OnActionError.create(`Provider does not have any kind registered for provider ${this.provider.prefix}/${this.provider.version}`, procedure_name, { provider_prefix: this.provider.prefix, provider_version: this.provider.version, additional_info: { "procedure_name": procedure_name }})
         }
     }
 }

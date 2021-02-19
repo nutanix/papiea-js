@@ -3,6 +3,7 @@ import { S2S_Key, Secret } from "papiea-core";
 import { Collection, Db } from "mongodb";
 import { datestringToFilter } from "./utils/date";
 import { Logger } from "papiea-backend-utils";
+import { PapieaException } from "../errors/papiea_exception";
 
 export class S2S_Key_DB_Mongo implements S2S_Key_DB {
     collection: Collection;
@@ -45,7 +46,7 @@ export class S2S_Key_DB_Mongo implements S2S_Key_DB {
             "deleted_at": null
         });
         if (result === null) {
-            throw new Error("key not found");
+            throw new PapieaException("MongoDBError: Key not found");
         }
         return result;
     }
@@ -56,7 +57,7 @@ export class S2S_Key_DB_Mongo implements S2S_Key_DB {
             "deleted_at": null
         });
         if (result === null) {
-            throw new Error("key not found");
+            throw new PapieaException("MongoDBError: Key not found");
         }
         return result;
     }
@@ -78,10 +79,10 @@ export class S2S_Key_DB_Mongo implements S2S_Key_DB {
                 }
             });
         if (result.result.n === undefined || result.result.ok !== 1) {
-            throw new Error("Failed to inactivate key");
+            throw new PapieaException("MongoDBError: Failed to inactivate key");
         }
         if (result.result.n !== 1 && result.result.n !== 0) {
-            throw new Error(`Amount of key inactivated must be 0 or 1, found: ${result.result.n}`);
+            throw new PapieaException(`MongoDBError: Amount of key inactivated must be 0 or 1, found: ${result.result.n}`);
         }
         return;
     }

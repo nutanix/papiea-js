@@ -3,17 +3,18 @@ import { ValidationError } from "../errors/validation_error"
 import { AxiosError } from "axios"
 import { Logger } from "papiea-backend-utils"
 import {BadRequestError} from "../errors/bad_request_error"
+import { PapieaException } from "../errors/papiea_exception"
 const semver = require('semver')
 
 function validatePaginationParams(offset: number | undefined, limit: number | undefined) {
     if (offset !== undefined) {
-        if (offset <= 0) {
-            throw new ValidationError([new Error("Offset should not be less or equal to zero")])
+        if (offset < 0) {
+            throw new ValidationError([new PapieaException(`Offset should be greater than or equal to zero, received: ${offset}`)])
         }
     }
     if (limit !== undefined) {
         if (limit <= 0) {
-            throw new ValidationError([new Error("Limit should not be less or equal to zero")])
+            throw new ValidationError([new PapieaException(`Limit should be greater than zero, received: ${limit}`)])
         }
     }
 }
@@ -62,7 +63,7 @@ export function processSortQuery(query: string | undefined): undefined | SortPar
                 processedQuery[field] = 1;
                 break;
             default:
-                throw new ValidationError([new Error("Sorting key's value must be either 'asc' or 'desc'")])
+                throw new ValidationError([new PapieaException(`Sorting key's value must be either 'asc' or 'desc', received: ${sortOrd}`)])
         }
     });
     return processedQuery;
@@ -86,7 +87,7 @@ export function safeJSONParse(chunk: string): Object | null {
     try {
         return JSON.parse(chunk)
     } catch (e) {
-        console.error(`Safe json parse failed: ${e}, Falling back to undefined`)
+        console.error(`Safe json parse failed for input: ${chunk} with error: ${e}, Falling back to undefined`)
         return null
     }
 }
@@ -134,12 +135,12 @@ export function getCalculateBackoffFn(retryExponent: number, logger: Logger) {
             maximumBackoff !== undefined && maximumBackoff !== null &&
             entropy !== undefined && entropy !== null) {
             if (kind_retry_exponent !== null && kind_retry_exponent !== undefined) {
-                logger.info(`Retry exponent for kind ${ kind_name } is set, not using the config exponent value`)
+                logger.info(`Retry exponent for kind: ${ kind_name } is set to ${kind_retry_exponent} sec, not using the config exponent value`)
                 retryExponent = kind_retry_exponent
             }
             return Math.min(Math.pow(retryExponent, retries) + entropy, maximumBackoff)
         }
-        logger.warn("Received null/undefined input in calculate backoff, using default backoff set to 10sec.")
+        logger.warn("Received null/undefined input in calculate backoff, using default backoff set to 10 sec.")
         return 10
     }
 }
@@ -173,10 +174,10 @@ export function getVersionVerifier(enginePapieaVersion: string) {
         const headersPapieaVersion = req.headers['papiea-version']
         if (headersPapieaVersion) {
             if (semver.valid(headersPapieaVersion) === null) {
-                throw new BadRequestError(`Received invalid papiea version: ${headersPapieaVersion}`)
+                throw new BadRequestError(`Received invalid papiea version: ${headersPapieaVersion}, valid example: ${enginePapieaVersion}`)
             }
             if (semver.diff(headersPapieaVersion, enginePapieaVersion) === 'major') {
-                throw new BadRequestError(`Received incompatible papiea version: ${headersPapieaVersion}`)
+                throw new BadRequestError(`Received incompatible papiea version: ${headersPapieaVersion}, expected version compatible with ${headersPapieaVersion}`)
             }
         }
         next();

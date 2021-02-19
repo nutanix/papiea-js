@@ -11,6 +11,7 @@ import {Logger, RequestContext, spanOperation} from "papiea-backend-utils"
 import { Watchlist_DB } from "../databases/watchlist_db_interface";
 import { SpecOnlyUpdateStrategy } from "../intentful_core/intentful_strategies/status_update_strategy";
 import { IntentfulContext } from "../intentful_core/intentful_context";
+import { PapieaException, PapieaExceptionContextImpl } from "../errors/papiea_exception"
 import uuid = require("uuid");
 
 export class Provider_API_Impl implements Provider_API {
@@ -42,7 +43,7 @@ export class Provider_API_Impl implements Provider_API {
     }
 
     async register_provider(user: UserAuthInfo, provider: Provider, ctx: RequestContext): Promise<void> {
-        await this.authorizer.checkPermission(user, provider, Action.RegisterProvider);
+        await this.authorizer.checkPermission(user, provider, Action.RegisterProvider, provider);
         this.validator.validate_provider(provider)
         this.validator.validate_sfs(provider)
         const span = spanOperation(`save_provider_db`,
@@ -73,13 +74,13 @@ export class Provider_API_Impl implements Provider_API {
         const provider: Provider = await this.providerDb.get_provider(provider_prefix, version);
         span.finish()
         const kind = this.providerDb.find_kind(provider, entity_ref.kind)
-        const strategy = this.intentfulContext.getStatusUpdateStrategy(kind, user)
+        const strategy = this.intentfulContext.getStatusUpdateStrategy(provider, kind, user)
         // if this is not critical, we can swap the order of checkPermission() and update()
         // to remove the verbose check
         if (strategy instanceof SpecOnlyUpdateStrategy) {
-            throw new Error("Cannot change status of a spec-only kind")
+            throw new PapieaException(`Cannot replace status for spec-only entity of kind ${provider.prefix}/${provider.version}/${kind.name}`, { provider_prefix: provider.prefix, provider_version: provider.version, kind_name: kind.name, additional_info: { "entity_uuid": entity_ref.uuid }})
         }
-        await this.authorizer.checkPermission(user, provider, Action.UpdateStatus);
+        await this.authorizer.checkPermission(user, provider, Action.UpdateStatus, provider);
         await this.validator.validate_status(provider, entity_ref, status);
         return strategy.replace({provider_prefix: provider_prefix, provider_version: version, ...entity_ref}, status, ctx)
     }
@@ -90,13 +91,13 @@ export class Provider_API_Impl implements Provider_API {
         const provider: Provider = await this.providerDb.get_provider(provider_prefix, version);
         getProviderSpan.finish()
         const kind = this.providerDb.find_kind(provider, entity_ref.kind)
-        const strategy = this.intentfulContext.getStatusUpdateStrategy(kind, user)
+        const strategy = this.intentfulContext.getStatusUpdateStrategy(provider, kind, user)
         // if this is not critical, we can swap the order of checkPermission() and update()
         // to remove the verbose check
         if (strategy instanceof SpecOnlyUpdateStrategy) {
-            throw new Error("Cannot change status of a spec-only kind")
+            throw new PapieaException(`Cannot update status for spec-only entity of kind ${provider.prefix}/${provider.version}/${kind.name}`, { provider_prefix: provider.prefix, provider_version: provider.version, kind_name: kind.name, additional_info: { "entity_uuid": entity_ref.uuid }})
         }
-        await this.authorizer.checkPermission(user, provider, Action.UpdateStatus);
+        await this.authorizer.checkPermission(user, provider, Action.UpdateStatus, provider);
         // We receive update in form of partial status
         // e.g. full status: {name: {last: 'Foo', first: 'Bar'}}
         // e.g. partial status update: {name: {last: 'BBB'}}
@@ -109,7 +110,7 @@ export class Provider_API_Impl implements Provider_API {
         let mergedStatus: any
         // Replace status if dealing with arrays
         if (Array.isArray(currentStatus) && Array.isArray(partialStatus)) {
-            this.logger.debug("Trying to update status as array, using replace semantics!")
+            this.logger.debug(`Status for entity is an array, using the replace semantics!\nEntity Info:${ new PapieaExceptionContextImpl(provider.prefix, provider.version, kind.name, { "entity_uuid": entity_ref.uuid }).toString() }`)
             mergedStatus = partialStatus
         } else {
             mergedStatus = {...currentStatus, ...partialStatus}
@@ -121,12 +122,12 @@ export class Provider_API_Impl implements Provider_API {
 
     async update_progress(user: UserAuthInfo, provider_prefix: string, version: Version, message: string, done_percent: number, ctx: RequestContext): Promise<void> {
         // TODO(adolgarev)
-        throw new Error("Not implemented");
+        throw new PapieaException("Not implemented");
     }
 
     async power(user: UserAuthInfo, provider_prefix: string, version: Version, power_state: Provider_Power, ctx: RequestContext): Promise<void> {
         // TODO(adolgarev)
-        throw new Error("Not implemented");
+        throw new PapieaException("Not implemented");
     }
 
     private async get_provider_unchecked(provider_prefix: string, provider_version: Version, ctx: RequestContext): Promise<Provider> {
@@ -156,7 +157,7 @@ export class Provider_API_Impl implements Provider_API {
 
     async update_auth(user: UserAuthInfo, provider_prefix: string, provider_version: Version, auth: any, ctx: RequestContext): Promise<void> {
         const provider: Provider = await this.get_provider_unchecked(provider_prefix, provider_version, ctx);
-        await this.authorizer.checkPermission(user, provider, Action.UpdateAuth);
+        await this.authorizer.checkPermission(user, provider, Action.UpdateAuth, provider);
         if (auth.authModel !== undefined) {
             provider.authModel = auth.authModel;
         }

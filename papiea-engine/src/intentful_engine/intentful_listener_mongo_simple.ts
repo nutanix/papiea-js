@@ -50,7 +50,7 @@ export class IntentfulListenerMongo implements IntentfulListener {
         try {
             await this._run(delay)
         } catch (e) {
-            console.error(e)
+            console.error(`Run method for intentful listener mongo simple failed: ${e}`)
             throw e
         }
     }

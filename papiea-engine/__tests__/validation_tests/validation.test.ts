@@ -20,7 +20,7 @@ describe("Validation tests", () => {
         };
         const try_validate = ValidationBuilder.createSimpleValidationFunc(done);
         try_validate(() => {
-            validator.validate(entity.spec, maybeLocation, trimmedLocationDataDescription, false, "trimmedLocation")
+            validator.validate('prefix', 'version', 'Location', entity.spec, maybeLocation, trimmedLocationDataDescription, false, "trimmedLocation")
         })
     });
 
@@ -32,7 +32,7 @@ describe("Validation tests", () => {
         };
         const try_validate = ValidationBuilder.createSimpleValidationFunc(done);
         try_validate(() => {
-            validator.validate(entity.spec, maybeLocation, trimmedLocationDataDescription, false, "trimmedLocation")
+            validator.validate('prefix', 'version', 'Location', entity.spec, maybeLocation, trimmedLocationDataDescription, false, "trimmedLocation")
         }, true)
     });
 
@@ -46,7 +46,7 @@ describe("Validation tests", () => {
         };
         const try_validate = ValidationBuilder.createSimpleValidationFunc(done);
         try_validate(() => {
-            validator.validate(entity.spec, maybeLocation, trimmedLocationDataDescription, false, "trimmedLocation")
+            validator.validate('prefix', 'version', 'Location', entity.spec, maybeLocation, trimmedLocationDataDescription, false, "trimmedLocation")
         })
     });
 
@@ -60,7 +60,7 @@ describe("Validation tests", () => {
         };
         const try_validate = ValidationBuilder.createSimpleValidationFunc(done);
         try_validate(() => {
-            validator.validate(entity.spec, maybeLocation, trimmedLocationDataDescription, false, "trimmedLocation")
+            validator.validate('prefix', 'version', 'Location', entity.spec, maybeLocation, trimmedLocationDataDescription, false, "trimmedLocation")
         }, true)
     });
 
@@ -73,7 +73,7 @@ describe("Validation tests", () => {
         };
         const try_validate = ValidationBuilder.createSimpleValidationFunc(done);
         try_validate(() => {
-            validator.validate(entity.spec, maybeLocation, trimmedLocationDataDescription, false, "trimmedLocation")
+            validator.validate('prefix', 'version', 'Location', entity.spec, maybeLocation, trimmedLocationDataDescription, false, "trimmedLocation")
         }, true)
     });
 
@@ -89,7 +89,7 @@ describe("Validation tests", () => {
         };
         const try_validate = ValidationBuilder.createSimpleValidationFunc(done);
         try_validate(() => {
-            validator.validate(entity.spec, maybeLocation, trimmedLocationDataDescription, false, "trimmedLocation")
+            validator.validate('prefix', 'version', 'Location', entity.spec, maybeLocation, trimmedLocationDataDescription, false, "trimmedLocation")
         })
     });
 
@@ -105,7 +105,7 @@ describe("Validation tests", () => {
         };
         const try_validate = ValidationBuilder.createSimpleValidationFunc(done);
         try_validate(() => {
-            validator.validate(entity.spec, maybeLocation, trimmedLocationDataDescription, false, "trimmedLocation")
+            validator.validate('prefix', 'version', 'Location', entity.spec, maybeLocation, trimmedLocationDataDescription, false, "trimmedLocation")
         }, true)
     });
 
@@ -121,7 +121,7 @@ describe("Validation tests", () => {
         };
         const try_validate = ValidationBuilder.createSimpleValidationFunc(done);
         try_validate(() => {
-            validator.validate(entity.spec, maybeLocation, trimmedLocationDataDescription, false, "trimmedLocation")
+            validator.validate('prefix', 'version', 'Location', entity.spec, maybeLocation, trimmedLocationDataDescription, false, "trimmedLocation")
         }, true)
     });
 
@@ -139,7 +139,7 @@ describe("Validation tests", () => {
         };
         const try_validate = ValidationBuilder.createSimpleValidationFunc(done);
         try_validate(() => {
-            validator.validate(entity.spec, maybeLocationStringParam, trimmedLocationDataDescriptionStringParam, false, "trimmedLocation")
+            validator.validate('prefix', 'version', 'Location', entity.spec, maybeLocationStringParam, trimmedLocationDataDescriptionStringParam, false, "trimmedLocation")
         })
     });
 
@@ -153,7 +153,7 @@ describe("Validation tests", () => {
         };
         const try_validate = ValidationBuilder.createSimpleValidationFunc(done);
         try_validate(() => {
-            validator.validate(entity.spec, maybeLocationStringParam, trimmedLocationDataDescriptionStringParam, false, "trimmedLocation")
+            validator.validate('prefix', 'version', 'Location', entity.spec, maybeLocationStringParam, trimmedLocationDataDescriptionStringParam, false, "trimmedLocation")
         }, true)
     });
 
@@ -167,7 +167,7 @@ describe("Validation tests", () => {
         };
         const try_validate = ValidationBuilder.createSimpleValidationFunc(done);
         try_validate(() => {
-            validator.validate(entity.spec, maybeLocationStringParam, trimmedLocationDataDescriptionStringParam, false, "trimmedLocation")
+            validator.validate('prefix', 'version', 'Location', entity.spec, maybeLocationStringParam, trimmedLocationDataDescriptionStringParam, false, "trimmedLocation")
         })
     });
 
@@ -209,19 +209,16 @@ describe("Validation tests", () => {
 
     test("Validator validate incorrect spec only kind structure with x-papiea=spec-only", () => {
         const desc = new DescriptionBuilder().withBehaviour(IntentfulBehaviour.SpecOnly).withSpecOnlyField().build()
-        const kindStructure = desc[Object.keys(desc)[0]]
-        expect(() => validator.validate_kind_structure(kindStructure)).toThrow()
+        expect(() => validator.validate_kind_structure(desc, '', '',  Object.keys(desc)[0])).toThrow()
     })
 
     test("Validator validate incorrect spec only kind structure with x-papiea=status-only", () => {
         const desc = new DescriptionBuilder().withBehaviour(IntentfulBehaviour.SpecOnly).withStatusOnlyField().build()
-        const kindStructure = desc[Object.keys(desc)[0]]
-        expect(()=>validator.validate_kind_structure(kindStructure)).toThrow()
+        expect(()=>validator.validate_kind_structure(desc, '', '',  Object.keys(desc)[0])).toThrow()
     })
 
     test("Validator validate correct spec only kind structure", () => {
         const desc = new DescriptionBuilder().withBehaviour(IntentfulBehaviour.SpecOnly).build()
-        const kindStructure = desc[Object.keys(desc)[0]]
-        validator.validate_kind_structure(kindStructure)
+        validator.validate_kind_structure(desc, '', '',  Object.keys(desc)[0])
     })
 });

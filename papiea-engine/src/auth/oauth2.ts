@@ -70,13 +70,13 @@ export function createOAuth2Router(logger: Logger, redirect_uri: string, provide
         const provider: Provider = await providerDb.get_provider(req.params.prefix, req.params.version);
         const oauth2 = getOAuth2(provider);
         const token = req.user.authorization.split(' ')[1]
-        const sessionKey = await sessionKeyAPI.getKey(token, oauth2)
+        const sessionKey = await sessionKeyAPI.getKey(token, oauth2, provider.prefix, provider.version)
         const idpToken = oauth2.accessToken.create({ "access_token": sessionKey.idpToken.token.access_token });
         try {
             await sessionKeyAPI.inactivateKey(sessionKey.key)
             await idpToken.revoke('access_token');
         } catch (e) {
-            logger.error('Logout error: ', e.message);
+            logger.error(`Failed to logout user with token: ${token} in provider with prefix: ${provider.prefix} and version: ${provider.version} due to error: ${e.message}`);
             return res.status(400).json("Logout failed");
         }
         const logoutUrl = new url.URL(provider.oauth2.oauth.logout_uri, provider.oauth2.oauth.auth_host);
@@ -97,7 +97,7 @@ export function createOAuth2Router(logger: Logger, redirect_uri: string, provide
             const key = uuid()
             const userInfo = getUserInfoFromToken(token.token, provider)
             userInfo.authorization = `Bearer ${key}`
-            const sessionKey = await sessionKeyAPI.createKey(userInfo, token, key, oauth2)
+            const sessionKey = await sessionKeyAPI.createKey(userInfo, token, key, oauth2, provider.prefix, provider.version)
             if (state.redirect_uri) {
                 const client_url = new url.URL(state.redirect_uri);
                 client_url.searchParams.append("token", sessionKey.key);
@@ -105,8 +105,8 @@ export function createOAuth2Router(logger: Logger, redirect_uri: string, provide
             } else {
                 return res.status(200).json({ token: sessionKey.key });
             }
-        } catch (error) {
-            logger.error('Access Token Error', error.message);
+        } catch (e) {
+            logger.error(`Failed to access token for user with code: ${code} in provider: ${provider.prefix}/${provider.version} due to error: ${e.message}`);
             return res.status(500).json('Authentication failed');
         }
     }));

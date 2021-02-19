@@ -64,13 +64,13 @@ export function createEntityAPIRouter(entity_api: Entity_API, trace: Function): 
         allowed_query_params: ['offset', 'limit', 'sort', 'entity_ref', 'created_at', 'status']
     }), trace("filter_intent_watcher"), asyncHandler(async (req, res) => {
         const filter: any = {};
-        const offset = queryToNum(req.query.offset);
-        const limit = queryToNum(req.query.limit);
-        const rawSortQuery = queryToString(req.query.sort);
+        const offset = queryToNum(req.query.offset, 'offset');
+        const limit = queryToNum(req.query.limit, 'limit');
+        const rawSortQuery = queryToString(req.query.sort, 'sort');
         const sortParams = processSortQuery(rawSortQuery);
         const [skip, size] = processPaginationParams(offset, limit);
         if (req.query.entity_ref) {
-            filter.entity_ref = JSON.parse(queryToString(req.query.entity_ref) ?? 'undefined')
+            filter.entity_ref = JSON.parse(queryToString(req.query.entity_ref, 'entity_ref') ?? 'undefined')
         }
         if (req.query.created_at) {
             filter.created_at = req.query.created_at
@@ -87,9 +87,9 @@ export function createEntityAPIRouter(entity_api: Entity_API, trace: Function): 
         allowed_body_params: ['entity_ref', 'created_at', 'status']
     }), trace("filter_intent_watcher"), asyncHandler(async (req, res) => {
         const filter: any = {};
-        const offset = queryToNum(req.query.offset);
-        const limit = queryToNum(req.query.limit);
-        const rawSortQuery = queryToString(req.query.sort);
+        const offset = queryToNum(req.query.offset, 'offset');
+        const limit = queryToNum(req.query.limit, 'limit');
+        const rawSortQuery = queryToString(req.query.sort, 'sort');
         const sortParams = processSortQuery(rawSortQuery);
         const [skip, size] = processPaginationParams(offset, limit);
         if (req.body.entity_ref) {
@@ -109,17 +109,17 @@ export function createEntityAPIRouter(entity_api: Entity_API, trace: Function): 
         allowed_query_params: ['offset', 'limit', 'sort', 'spec', 'status', 'metadata', 'exact', 'deleted']
     }), trace("filter_entity"), asyncHandler(async (req, res) => {
         const filter: any = {};
-        const offset = queryToNum(req.query.offset);
-        const limit = queryToNum(req.query.limit);
-        const rawSortQuery = queryToString(req.query.sort);
-        const exactMatch = queryToBool(req.query.exact) ?? false
-        const searchDeleted = queryToBool(req.query.deleted) ?? false
+        const offset = queryToNum(req.query.offset, 'offset');
+        const limit = queryToNum(req.query.limit, 'limit');
+        const rawSortQuery = queryToString(req.query.sort, 'sort');
+        const exactMatch = queryToBool(req.query.exact, 'exact') ?? false
+        const searchDeleted = queryToBool(req.query.deleted, 'deleted') ?? false
         const sortParams = processSortQuery(rawSortQuery);
         const [skip, size] = processPaginationParams(offset, limit);
 
-        filter.spec = JSON.parse(queryToString(req.query.spec) ?? '{}');
-        filter.status = JSON.parse(queryToString(req.query.status) ?? '{}');
-        filter.metadata = JSON.parse(queryToString(req.query.metadata) ?? '{}');
+        filter.spec = JSON.parse(queryToString(req.query.spec, 'spec') ?? '{}');
+        filter.status = JSON.parse(queryToString(req.query.status, 'status') ?? '{}');
+        filter.metadata = JSON.parse(queryToString(req.query.metadata, 'metadata') ?? '{}');
 
         res.json(await filterEntities(req.user, req.params.prefix, req.params.version, req.params.kind, filter, skip, size, searchDeleted, exactMatch, res.locals.ctx, sortParams));
     }));
@@ -135,11 +135,11 @@ export function createEntityAPIRouter(entity_api: Entity_API, trace: Function): 
         allowed_query_params: ['offset', 'limit', 'sort', 'exact', 'deleted'],
         allowed_body_params: ['spec', 'status', 'metadata', 'offset', 'limit', 'sort']
     }), trace("filter_entity"), asyncHandler(async (req, res) => {
-        const offset = queryToNum(req.query.offset) ?? req.body.offset;
-        const limit = queryToNum(req.query.limit) ?? req.body.limit;
-        const rawSortQuery = queryToString(req.query.sort) ?? req.body.sort;
-        const exactMatch = queryToBool(req.query.exact) ?? false
-        const searchDeleted = queryToBool(req.query.deleted) ?? false
+        const offset = queryToNum(req.query.offset, 'offset') ?? req.body.offset;
+        const limit = queryToNum(req.query.limit, 'limit') ?? req.body.limit;
+        const rawSortQuery = queryToString(req.query.sort, 'sort') ?? req.body.sort;
+        const exactMatch = queryToBool(req.query.exact, 'exact') ?? false
+        const searchDeleted = queryToBool(req.query.deleted, 'deleted') ?? false
         const sortParams: undefined | SortParams = processSortQuery(rawSortQuery);
         const [skip, size] = processPaginationParams(offset, limit);
         const filter: any = {};
@@ -203,30 +203,30 @@ export function createEntityAPIRouter(entity_api: Entity_API, trace: Function): 
 
 type ExpressQueryParam = string | Query | (string | Query)[];
 
-function queryToNum(q?: ExpressQueryParam): number | undefined {
+function queryToNum(q?: ExpressQueryParam, fieldName?: string): number | undefined {
     switch (typeof q) {
         case 'number': return q;
         case 'string': return Number.parseFloat(q);
         case 'undefined': return undefined;
         default:
-            throw new BadRequestError('Invalid query parameter');
+            throw new BadRequestError(`Query parameter: ${fieldName} has invalid type: ${typeof q}`);
     }
 }
 
-function queryToString(q?: ExpressQueryParam): string | undefined {
+function queryToString(q?: ExpressQueryParam, fieldName?: string): string | undefined {
     switch (typeof q) {
         case 'string': return q;
         case 'undefined': return undefined;
         default:
-            throw new BadRequestError('Invalid query parameter');
+            throw new BadRequestError(`Query parameter: ${fieldName} has invalid type: ${typeof q}`);
     }
 }
 
-function queryToBool(q?: ExpressQueryParam): boolean | undefined {
+function queryToBool(q?: ExpressQueryParam, fieldName?: string): boolean | undefined {
     switch (typeof q) {
         case 'string': return q === "true"
         case 'undefined': return undefined;
         default:
-            throw new BadRequestError('Invalid query parameter');
+            throw new BadRequestError(`Query parameter: ${fieldName} has invalid type: ${typeof q}`);
     }
 }

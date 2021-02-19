@@ -1,13 +1,14 @@
 import { Spec, uuid4, Metadata, Status } from "papiea-core";
+import { PapieaException } from "../../errors/papiea_exception"
 
-export class ConflictingEntityError extends Error {
+export class ConflictingEntityError extends PapieaException {
 
     existing_metadata: Metadata;
     existing_spec: Spec;
     existing_status?: Status
 
     constructor(msg: string, metadata: Metadata, spec: Spec, status?: Status) {
-        super(msg);
+        super(msg, {provider_prefix: metadata.provider_prefix, provider_version: metadata.provider_version, kind_name: metadata.kind, additional_info: { "entity_uuid": metadata.uuid }});
         this.existing_metadata = metadata;
         this.existing_spec = spec;
         this.existing_status = status
@@ -25,14 +26,18 @@ export class GraveyardConflictingEntityError extends ConflictingEntityError {
     }
 }
 
-export class EntityNotFoundError extends Error {
+export class EntityNotFoundError extends PapieaException {
 
     uuid: uuid4;
     kind: string;
 
-    constructor(kind: string, uuid: uuid4) {
-        super();
+    constructor(kind: string, uuid: uuid4, provider_prefix: string = '', provider_version: string = '') {
+        super('Entity Not Found', { provider_prefix: provider_prefix, provider_version: provider_version, kind_name: kind, additional_info: { "entity_uuid": uuid }});
         this.kind = kind;
         this.uuid = uuid;
+    }
+
+    toErrors(): { [key: string]: any }[] {
+        return [{ message: `Entity ${this.uuid} not found` }]
     }
 }

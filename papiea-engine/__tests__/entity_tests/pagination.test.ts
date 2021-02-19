@@ -127,7 +127,7 @@ describe("Pagination tests", () => {
                 }
             });
         } catch (e) {
-            expect(e.response.data.error.errors[0].message).toBe("Limit should not be less or equal to zero");
+            expect(e.response.data.error.errors[0].message).toBe("Limit should be greater than zero, received: -1");
         }
     });
 
@@ -141,22 +141,20 @@ describe("Pagination tests", () => {
                 }
             });
         } catch (e) {
-            expect(e.response.data.error.errors[0].message).toBe("Offset should not be less or equal to zero");
+            expect(e.response.data.error.errors[0].message).toBe("Offset should be greater than or equal to zero, received: -1");
         }
     });
 
     test("Pagination test with offset equal to zero", async () => {
-        expect.assertions(1);
-        try {
-            await entityApi.post(`${providerPrefix}/${providerVersion}/${kind_name}/filter?offset=0`, {
-                spec: {
-                    x: 10,
-                    y: 11
-                }
-            });
-        } catch (e) {
-            expect(e.response.data.error.errors[0].message).toBe("Offset should not be less or equal to zero");
-        }
+        expect.assertions(2);
+        let res = await entityApi.post(`${ providerPrefix }/${ providerVersion }/${ kind_name }/filter?offset=0`, {
+            spec: {
+                x: 10,
+                y: 11
+            }
+        });
+        expect(res.data.results.length).toBe(30);
+        expect(res.data.entity_count).toBe(70);
     });
 
     test("Pagination test with limit equal to zero", async () => {
@@ -169,7 +167,7 @@ describe("Pagination tests", () => {
                 }
             });
         } catch (e) {
-            expect(e.response.data.error.errors[0].message).toBe("Limit should not be less or equal to zero");
+            expect(e.response.data.error.errors[0].message).toBe("Limit should be greater than zero, received: 0");
         }
     });
 

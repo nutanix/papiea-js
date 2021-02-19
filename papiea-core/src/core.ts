@@ -321,7 +321,9 @@ export enum PapieaError {
     Unauthorized = "unauthorized_error",
     PermissionDenied = "permission_denied_error",
     ConflictingEntity = "conflicting_entity_error",
-    ServerError = "server_error"
+    ServerError = "server_error",
+    OnActionError = "on_action_error",
+    PapieaException = "papiea_exception"
 }
 
 export interface PapieaResponse {
@@ -335,6 +337,14 @@ export interface PapieaErrorResponse {
     code: number
     message: string
     type: PapieaError
+    entity_info: { [key: string]: any}
+}
+
+export interface PapieaExceptionContext {
+    provider_prefix?: string
+    provider_version?: string
+    kind_name?: string
+    additional_info?: { [key: string]: string}
 }
 
 export enum Action {
@@ -357,4 +367,17 @@ export enum SwaggerValidatorErrorMessages {
     additional_props_not_allowed_str = "Additional properties not allowed: ",
     array_short_str = "Array is too short (",
     array_items_not_unique_str = "Array items are not unique (indexes "
+}
+
+export enum SwaggerModelValidatorErrorMessage {
+    undefined_value_str = 'Unable to validate an undefined value of property: ',
+    empty_value_str = 'Unable to validate an empty value for property: ',
+    undefined_model_str = 'Unable to validate against an undefined model.',
+    type_mismatch_str = 'Unable to validate a model with a type: ',
+    additional_input_field_str = 'Target property \'',
+    non_string_type_field_str = 'Schema property (',
+    not_object_type_str = ' is not a type of object. It is a type of ',
+    not_array_type_str = ' is not an array. An array is expected.',
+    required_field_no_value_str = ' is a required field',
+    required_field_missing_schema_str = 'object does not have property ',
 }

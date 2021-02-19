@@ -3,6 +3,8 @@ import { SortParams } from "../entity/entity_api_impl"
 import { Logger } from 'papiea-backend-utils'
 import { IntentWatcher_DB } from "./intent_watcher_db_interface"
 import { IntentWatcher } from "papiea-core"
+import { EntityNotFoundError } from "./utils/errors"
+import { PapieaException } from "../errors/papiea_exception"
 
 export class IntentWatcher_DB_Mongo implements IntentWatcher_DB {
     collection: Collection;
@@ -34,7 +36,7 @@ export class IntentWatcher_DB_Mongo implements IntentWatcher_DB {
             "uuid": uuid,
         });
         if (result === null) {
-            throw new Error("key not found");
+            throw new EntityNotFoundError('IntentWatcher', uuid);
         }
         return result;
     }
@@ -46,10 +48,10 @@ export class IntentWatcher_DB_Mongo implements IntentWatcher_DB {
             $set: delta
         })
         if (result.result.n === undefined || result.result.ok !== 1) {
-            throw new Error("Failed update intent watcher");
+            throw new PapieaException(`MongoDBError: Failed to update intent watcher with uuid: ${uuid}`);
         }
         if (result.result.n !== 1 && result.result.n !== 0) {
-            throw new Error(`Amount of intent watchers updated must be 0 or 1, found: ${result.result.n}`);
+            throw new PapieaException(`MongoDBError: Amount of intent watchers updated must be 0 or 1, found: ${result.result.n} for uuid: ${uuid}`);
         }
     }
 
@@ -68,10 +70,10 @@ export class IntentWatcher_DB_Mongo implements IntentWatcher_DB {
             uuid
         })
         if (result.result.n === undefined || result.result.ok !== 1) {
-            throw new Error("Failed to delete a intent watcher");
+            throw new PapieaException(`MongoDBError: Failed to delete intent watcher with uuid: ${uuid}`);
         }
         if (result.result.n !== 1 && result.result.n !== 0) {
-            throw new Error(`Amount of deleted intent watchers must be 0 or 1, found: ${result.result.n}`);
+            throw new PapieaException(`MongoDBError: Amount of deleted intent watchers must be 0 or 1, found: ${result.result.n} for uuid: ${uuid}`);
         }
         return;
     }

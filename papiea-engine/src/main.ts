@@ -89,7 +89,7 @@ async function setUpApplication(): Promise<express.Express> {
         if (res.headersSent) {
             return next(err);
         }
-        const papieaError = papieaErrorFactory(err);
+        const papieaError = papieaErrorFactory(err, req);
         res.status(papieaError.status)
         res.json(papieaError.toResponse())
         logger.error(papieaError.toString(), err.stack)

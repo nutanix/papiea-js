@@ -6,6 +6,7 @@ import { SortParams } from "../entity/entity_api_impl";
 import { Logger, dotnotation } from "papiea-backend-utils";
 import { IntentfulKindReference } from "./provider_db_mongo";
 import { build_filter_query } from "./utils/filtering"
+import { PapieaException } from "../errors/papiea_exception"
 
 export class Spec_DB_Mongo implements Spec_DB {
     collection: Collection;
@@ -54,7 +55,7 @@ export class Spec_DB_Mongo implements Spec_DB {
                     upsert: true
                 });
             if (result.result.n !== 1) {
-                throw new Error(`Amount of updated entries doesn't equal to 1: ${result.result.n}`)
+                throw new PapieaException(`MongoDBError: Amount of updated entries doesn't equal to 1: ${result.result.n} for kind ${entity_metadata.provider_prefix}/${entity_metadata.provider_version}/${entity_metadata.kind}`, { provider_prefix: entity_metadata.provider_prefix, provider_version: entity_metadata.provider_version, kind_name: entity_metadata.kind, additional_info: { "entity_uuid": entity_metadata.uuid }})
             }
             return this.get_spec(entity_metadata);
         } catch (err) {
@@ -63,10 +64,10 @@ export class Spec_DB_Mongo implements Spec_DB {
                 try {
                   res = await this.get_spec(entity_metadata);
                 } catch (e) {
-                    throw new Error(`Cannot create entity ${e}, ${err}`)
+                    throw new PapieaException(`MongoDBError: Cannot create entity for kind ${entity_metadata.provider_prefix}/${entity_metadata.provider_version}/${entity_metadata.kind}`, { provider_prefix: entity_metadata.provider_prefix, provider_version: entity_metadata.provider_version, kind_name: entity_metadata.kind, additional_info: { "entity_uuid": entity_metadata.uuid }})
                 }
                 const [metadata, spec] = res
-                throw new ConflictingEntityError("Spec with this version already exists", metadata, spec);
+                throw new ConflictingEntityError(`MongoDBError: Spec with this version already exists`, metadata, spec);
             } else {
                 throw err;
             }
@@ -83,7 +84,7 @@ export class Spec_DB_Mongo implements Spec_DB {
                 "metadata.deleted_at": null
             });
         if (result === null) {
-            throw new EntityNotFoundError(entity_ref.kind, entity_ref.uuid)
+            throw new EntityNotFoundError(entity_ref.kind, entity_ref.uuid, entity_ref.provider_prefix, entity_ref.provider_version)
         }
         return [result.metadata, result.spec];
     }
@@ -99,7 +100,7 @@ export class Spec_DB_Mongo implements Spec_DB {
             if (x.spec !== null) {
                 return [x.metadata, x.spec]
             } else {
-                throw new Error("No valid entities found");
+                throw new PapieaException("MongoDBError: No valid entities found");
             }
         });
     }
@@ -116,7 +117,7 @@ export class Spec_DB_Mongo implements Spec_DB {
             if (x.spec !== null) {
                 return [x.metadata, x.spec]
             } else {
-                throw new Error("No valid entities found");
+                throw new PapieaException("MongoDBError: No valid entities found");
             }
         });
     }
@@ -127,7 +128,7 @@ export class Spec_DB_Mongo implements Spec_DB {
             if (x.spec !== null) {
                 return [x.metadata, x.spec]
             } else {
-                throw new Error("No valid entities found");
+                throw new PapieaException("MongoDBError: No valid entities found");
             }
         });
     }
@@ -153,7 +154,7 @@ export class Spec_DB_Mongo implements Spec_DB {
             if (x.spec !== null) {
                 return [x.metadata, x.spec]
             } else {
-                throw new Error("No valid entities found");
+                throw new PapieaException("MongoDBError: No valid entities found");
             }
         });
     }

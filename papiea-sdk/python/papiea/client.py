@@ -182,7 +182,8 @@ class IntentWatcherClient(object):
             end_time = time.time()
             time_elapsed = end_time - start_time
             if time_elapsed > timeout_secs:
-                raise Exception("Timeout waiting for intent watcher status")
+                raise Exception(f"Timeout waiting for change in watcher status with uuid: {watcher_ref.uuid} for entity with uuid: {watcher.entity_ref.uuid} and kind: {watcher.entity_ref.kind} in provider with prefix: {watcher.entity_ref.provider_prefix} and version: {watcher.entity_ref.provider_version},"
+                                f" desired status: {watcher_status} and current status: {watcher.status}")
             time.sleep(delay_secs)
 
 

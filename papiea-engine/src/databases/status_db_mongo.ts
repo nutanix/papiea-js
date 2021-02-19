@@ -4,6 +4,8 @@ import { Entity_Reference, Status, Metadata, Entity, Provider_Entity_Reference }
 import { SortParams } from "../entity/entity_api_impl";
 import { Logger, dotnotation } from "papiea-backend-utils";
 import { build_filter_query } from "./utils/filtering"
+import { EntityNotFoundError } from "./utils/errors";
+import { PapieaException } from "../errors/papiea_exception"
 
 export class Status_DB_Mongo implements Status_DB {
     collection: Collection;
@@ -35,7 +37,7 @@ export class Status_DB_Mongo implements Status_DB {
                 upsert: true
             });
         if (result.result.n !== 1) {
-            throw new Error(`Amount of updated entries doesn't equal to 1: ${result.result.n}`)
+            throw new PapieaException(`MongoDBError: Amount of updated entries doesn't equal to 1: ${result.result.n} for kind ${entity_ref.provider_prefix}/${entity_ref.provider_version}/${entity_ref.kind}`, { provider_prefix: entity_ref.provider_prefix, provider_version: entity_ref.provider_version, kind_name: entity_ref.kind, additional_info: { "entity_uuid": entity_ref.uuid }})
         }
     }
 
@@ -64,12 +66,12 @@ export class Status_DB_Mongo implements Status_DB {
                 });
         } catch (e) {
             if (e.code === 9) {
-                throw new Error(`Error parsing update query. Update body might be 'undefined', if this is expected, please use 'null'.`)
+                throw new PapieaException(`MongoDBError: Update body might be 'undefined', if this is expected, please use 'null' for kind ${entity_ref.provider_prefix}/${entity_ref.provider_version}/${entity_ref.kind}`,  { provider_prefix: entity_ref.provider_prefix, provider_version: entity_ref.provider_version, kind_name: entity_ref.kind, additional_info: { "entity_uuid": entity_ref.uuid }})
             }
             throw e
         }
         if (result.result.n !== 1) {
-            throw new Error(`Amount of updated entries doesn't equal to 1: ${result.result.n}`)
+            throw new PapieaException(`MongoDBError: Amount of updated entries doesn't equal to 1: ${result.result.n} for kind ${entity_ref.provider_prefix}/${entity_ref.provider_version}/${entity_ref.kind}`,  { provider_prefix: entity_ref.provider_prefix, provider_version: entity_ref.provider_version, kind_name: entity_ref.kind, additional_info: { "entity_uuid": entity_ref.uuid }})
         }
     }
 
@@ -81,7 +83,7 @@ export class Status_DB_Mongo implements Status_DB {
             "metadata.kind": entity_ref.kind
         });
         if (result === null) {
-            throw new Error("Status Not found")
+            throw new EntityNotFoundError(entity_ref.kind, entity_ref.uuid, entity_ref.provider_prefix, entity_ref.provider_version);
         }
         return [result.metadata, result.status]
     }
@@ -97,7 +99,7 @@ export class Status_DB_Mongo implements Status_DB {
             if (x.spec !== null) {
                 return [x.metadata, x.status]
             } else {
-                throw new Error("No valid entities found");
+                throw new PapieaException("MongoDBError: No valid entities found");
             }
         });
     }
@@ -114,7 +116,7 @@ export class Status_DB_Mongo implements Status_DB {
             if (x.status !== null) {
                 return [x.metadata, x.status]
             } else {
-                throw new Error("No entities found")
+                throw new PapieaException("MongoDBError: No entities found while listing status")
             }
         });
     }
@@ -125,7 +127,7 @@ export class Status_DB_Mongo implements Status_DB {
             if (x.status !== null) {
                 return [x.metadata, x.status]
             } else {
-                throw new Error("No valid entities found");
+                throw new PapieaException("MongoDBError: No valid entities found");
             }
         });
     }

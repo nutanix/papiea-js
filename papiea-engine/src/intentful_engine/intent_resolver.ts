@@ -153,7 +153,7 @@ export class IntentResolver {
                 await this.processActiveWatcher(watcher, entity)
             }
         } catch (e) {
-            this.logger.debug(`Couldn't process entity with uuid: ${entity.metadata.uuid}`)
+            this.logger.debug(`Couldn't process onChange for entity with uuid: ${entity.metadata.uuid} and kind: ${entity.metadata.kind} for provider with prefix: ${entity.metadata.provider_prefix} and version: ${entity.metadata.provider_version}`)
         }
     }
 
@@ -191,7 +191,7 @@ export class IntentResolver {
         try {
             await this._run(delay, watcherExpirySeconds)
         } catch (e) {
-            console.error(e)
+            console.error(`Error in run method for intent resolver: ${e}`)
             throw e
         }
     }

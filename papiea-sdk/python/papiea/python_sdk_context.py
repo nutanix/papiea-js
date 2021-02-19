@@ -125,7 +125,7 @@ class ProceduralCtx(object):
             parts = self.headers["authorization"].split(" ")
             if parts[0] == "Bearer":
                 return parts[1]
-        raise Exception("No invoking user")
+        raise Exception("Request has invalid user authorization info")
 
 class IntentfulCtx(ProceduralCtx):
     pass

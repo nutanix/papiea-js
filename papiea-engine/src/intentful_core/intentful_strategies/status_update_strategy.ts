@@ -5,6 +5,7 @@ import { Spec_DB } from "../../databases/spec_db_interface";
 import { Watchlist_DB } from "../../databases/watchlist_db_interface";
 import { create_entry } from "../../intentful_engine/watchlist";
 import {RequestContext, spanOperation} from "papiea-backend-utils"
+import { PapieaException } from "../../errors/papiea_exception"
 
 export abstract class StatusUpdateStrategy {
     statusDb: Status_DB
@@ -38,11 +39,11 @@ export class SpecOnlyUpdateStrategy extends StatusUpdateStrategy {
     }
 
     async update(entity_ref: Entity_Reference, status: Status): Promise<any> {
-        throw new Error("Cannot change status of a spec-only kind")
+        throw new PapieaException(`Cannot update status for spec-only entity`, { kind_name: entity_ref.kind, additional_info: { "entity_uuid": entity_ref.uuid }})
     }
 
     async replace(entity_ref: Entity_Reference, status: Status): Promise<any> {
-        throw new Error("Cannot change status of a spec-only kind")
+        throw new PapieaException(`Cannot replace status for spec-only entity`, { kind_name: entity_ref.kind, additional_info: { "entity_uuid": entity_ref.uuid }})
     }
 }
 

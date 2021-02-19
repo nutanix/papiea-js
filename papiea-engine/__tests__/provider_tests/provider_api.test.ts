@@ -82,7 +82,7 @@ describe("Provider API tests", () => {
         try {
             await providerApi.post('/', provider);
         } catch (e) {
-            expect(e.response.data.error.errors[0].message).toBe("x-papiea has wrong value: spec-only, possible values are: status-only");
+            expect(e.response.data.error.errors[0].message).toBe("x-papiea has wrong value: spec-only, correct values are: status-only");
         }
     });
 
@@ -252,7 +252,7 @@ describe("Provider API tests", () => {
         } catch (e) {
             expect(e).toBeDefined()
             expect(e.response.data.error.message).toEqual("Validation failed.")
-            expect(e.response.data.error.errors[0].message).toEqual("Status body is undefined, please use null fields instead")
+            expect(e.response.data.error.errors[0].message).toContain(`Status body has undefined value for one/more fields which is not supported in papiea, use null value instead to remove the field from status`)
         }
     });
 

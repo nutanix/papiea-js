@@ -9,12 +9,13 @@ import {Validator} from "../../validator"
 import {Authorizer} from "../../auth/authz"
 import {RequestContext, spanOperation} from "papiea-backend-utils"
 import {ValidationError} from "../../errors/validation_error"
+import { PapieaException } from "../../errors/papiea_exception"
 
 export class BasicEntityCreationStrategy extends EntityCreationStrategy {
     public async create(input: {metadata: Metadata, spec: Spec}, ctx: RequestContext): Promise<EntityCreationResult> {
         const metadata = await this.create_metadata(input.metadata ?? {})
         if (input.spec === undefined || input.spec === null) {
-            throw new ValidationError([new Error("Spec was not provided or was provided in an incorrect format")])
+            throw new ValidationError([new PapieaException(`Spec is missing for entity of kind ${metadata.provider_prefix}/${metadata.provider_version}/${metadata.kind}`, { provider_prefix: metadata.provider_prefix, provider_version: metadata.provider_version, kind_name: metadata.kind, additional_info: { "entity_uuid": metadata.uuid }})])
         }
         await this.validate_entity({metadata, spec: input.spec, status: input.spec})
         const span = spanOperation(`save_entity_db`,

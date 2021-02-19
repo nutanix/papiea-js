@@ -2,6 +2,7 @@ import { Collection, Db } from "mongodb";
 import { Logger } from "papiea-backend-utils";
 import { Watchlist_DB } from "./watchlist_db_interface";
 import { SerializedWatchlist, Watchlist } from "../intentful_engine/watchlist";
+import { PapieaException } from "../errors/papiea_exception";
 
 type WatchlistResult = {
     id: number
@@ -35,7 +36,7 @@ export class Watchlist_Db_Mongo implements Watchlist_DB {
             upsert: true
         });
         if (result.result.n !== 1) {
-            throw new Error(`Amount of updated entries doesn't equal to 1: ${result.result.n}`)
+            throw new PapieaException(`MongoDBError: Amount of updated entries doesn't equal to 1: ${result.result.n}`)
         }
     }
 
