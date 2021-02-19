@@ -1,3 +1,4 @@
+- Version 0.9.29+2008: Remove more jaeger debug logs (#632) PR url: git@github.com:nutanix/papiea.git/pull/632
 - Version 0.9.28+2002: Added validator and swagger error message translate function in api docs (#629) PR url: git@github.com:nutanix/papiea.git/pull/629
 - Version 0.9.27+1994: Jaeger suppress messages config (#631) PR url: git@github.com:nutanix/papiea.git/pull/631
 - Version 0.9.26+1985: Add argument validation (#630)
