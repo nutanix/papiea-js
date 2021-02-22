@@ -112,7 +112,7 @@ workflows:
   version: 2
   build-and-release:
     jobs:
-#      - papiea-test:
+      - papiea-test
 #          filters:
 #            branches:
 #              only: master
