@@ -1348,7 +1348,7 @@ describe("Provider Sdk tests", () => {
                 }
             })
         } catch (e) {
-            expect(e.response.data.error.errors[0].message).toContain("On Create couldn't be called; Entity returned by the custom constructor of kind test_status_only_field_update_spec/0.1.0/TestObject is not valid due to errors: Received procedure input has additional field: 'a' not present in the schema")
+            expect(e.response.data.error.errors[0].message).toContain("Entity returned by the custom constructor of kind test_status_only_field_update_spec/0.1.0/TestObject is not valid due to errors: Received procedure input has additional field: 'a' not present in the schema")
         } finally {
             sdk.cleanup()
         }
@@ -1397,7 +1397,7 @@ describe("Provider Sdk tests", () => {
                 }
             })
         } catch (e) {
-            expect(e.response.data.error.errors[0].message).toContain("On Create couldn't be called; Entity returned by the custom constructor of kind test_status_only_field_update_spec/0.1.0/TestObject is not valid due to errors: Received procedure input has additional field: 'a' not present in the schema")
+            expect(e.response.data.error.errors[0].message).toContain("Entity returned by the custom constructor of kind test_status_only_field_update_spec/0.1.0/TestObject is not valid due to errors: Received procedure input has additional field: 'a' not present in the schema")
             expect(e.response.data.error.entity_info.provider_prefix).toBe("test_status_only_field_update_spec")
             expect(e.response.data.error.entity_info.provider_version).toBe(provider_version)
             expect(e.response.data.error.entity_info.kind_name).toBe("TestObject")
@@ -2350,7 +2350,7 @@ describe("SDK callback tests", () => {
             })
         } catch (err) {
             expect(err.response.data.error.code).toBe(500)
-            expect(err.response.data.error.errors[0].message).toContain("On Create couldn't be called; Entity returned by the custom constructor of kind provider_on_create_callback_invalid_constructor_return_entity/0.1.0/Location is not valid due to errors: Received procedure input is missing required field: y")
+            expect(err.response.data.error.errors[0].message).toContain("Entity returned by the custom constructor of kind provider_on_create_callback_invalid_constructor_return_entity/0.1.0/Location is not valid due to errors: Received procedure input is missing required field: y")
         }finally {
             sdk.cleanup()
         }
@@ -2707,7 +2707,7 @@ describe("SDK callback tests", () => {
                 })
             } catch (e) {
                 expect(e.response.data).toBeDefined()
-                expect(e.response.data.error.errors[0].message).toBe("On Delete couldn't be called; Cannot invoke on delete")
+                expect(e.response.data.error.errors[0].message).toBe("Cannot invoke on delete")
             }
         } finally {
             sdk.cleanup()
@@ -2744,7 +2744,7 @@ describe("SDK callback tests", () => {
                 })
             } catch (e) {
                 expect(e.response.data).toBeDefined()
-                expect(e.response.data.error.errors[0].message).toBe("On Create couldn't be called; Cannot invoke on create")
+                expect(e.response.data.error.errors[0].message).toBe("Cannot invoke on create")
             }
         } finally {
             sdk.cleanup()

@@ -88,7 +88,7 @@ export class SessionKeyUserAuthInfoExtractor implements UserAuthInfoExtractor {
             delete user_info.is_admin
             return user_info
         } catch (e) {
-            console.error(`While trying to authenticate with IDP error occurred for provider with prefix: ${provider_prefix} and version: ${provider_version} due to error: ${e}`)
+            console.error(`While trying to authenticate with IDP error occurred for provider: ${provider_prefix}/${provider_version} due to error: ${e.message}`)
             return null
         }
     }
