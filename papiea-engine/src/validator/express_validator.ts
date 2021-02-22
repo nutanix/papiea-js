@@ -1,4 +1,4 @@
-import { NextFunction, Request, Response, Router } from "express";
+import { NextFunction, Request, Response } from "express";
 import { BadRequestError } from "../errors/bad_request_error";
 
 interface RequestValidatorOptions {
