@@ -113,18 +113,18 @@ workflows:
   build-and-release:
     jobs:
       - papiea-test
-#          filters:
-#            branches:
-#              only: master
+          filters:
+            branches:
+              only: master
       - release:
           requires:
             - papiea-test
-#          filters:
-#            branches:
-#              only: master
-#  build-development-version:
-#    jobs:
-#      - dev-build:
-#          filters:
-#            branches:
-#              ignore: master
+          filters:
+            branches:
+              only: master
+  build-development-version:
+    jobs:
+      - dev-build:
+          filters:
+            branches:
+              ignore: master
