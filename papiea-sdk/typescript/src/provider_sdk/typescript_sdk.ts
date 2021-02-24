@@ -276,8 +276,8 @@ export class ProviderSdk implements ProviderImpl {
         return this
     }
 
-    async background_task(callback: () => Promise<any>, timeout_sec: number, name?: string): Promise<BackgroundTaskBuilder> {
-        return await BackgroundTaskBuilder.create_task(this, callback, timeout_sec, this._tracer, name)
+    async background_task(callback: () => Promise<any>, timeout_sec: number, name: string, schema?: any): Promise<BackgroundTaskBuilder> {
+        return await BackgroundTaskBuilder.create_task(this, callback, timeout_sec, this._tracer, name, schema)
     }
 
     async register(): Promise<void> {
@@ -469,8 +469,8 @@ export class BackgroundTaskBuilder {
         this.kind_client = kind_client(provider.papiea_url, provider.get_prefix(), name, provider.get_version(), provider.s2s_key)
     }
 
-    static async create_task(provider: ProviderSdk, callback: () => Promise<any>, timeout_sec: number, tracer: Tracer, name: string = `task_kind_${uuid()}`) {
-        const kind = provider.new_kind({
+    static async create_task(provider: ProviderSdk, callback: (entity?: Entity) => Promise<any>, timeout_sec: number, tracer: Tracer, name: string, schema?: any) {
+        const kind = provider.new_kind(schema ? this.modify_task_schema(schema) : {
             [name]: {
                 type: "object",
                 properties: {
@@ -481,7 +481,7 @@ export class BackgroundTaskBuilder {
             }
         })
         kind.on("state", async (ctx, entity, input) => {
-            await callback()
+            await callback(entity)
             return {
                 delay_secs: timeout_sec
             }
@@ -522,6 +522,39 @@ export class BackgroundTaskBuilder {
                 status: {
                     state: states.IdleStatusState()
                 }
+            });
+        }
+    }
+
+    // Make all the fields apart from 'task' status-only
+    private static modify_task_schema(schema: any) {
+        for (let prop in schema) {
+            if (schema.hasOwnProperty(prop)) {
+                let nested_prop = schema[prop]
+                if (nested_prop["type"]) {
+                    if (
+                        nested_prop["type"] === "object"
+                        && nested_prop["properties"]
+                        && Object.keys(nested_prop["properties"]).length > 0
+                    ) {
+                        this.modify_task_schema(nested_prop["properties"])
+                    }
+                    if (prop !== "state") {
+                        nested_prop["x-papiea"] = "status-only"
+                    }
+                }
+            }
+        }
+    }
+
+    async update_task(status: any) {
+        if (this.task_entity === null) {
+            throw new Error(`Attempting to update missing background task on provider: 
+                            ${this.provider.get_prefix()}, ${this.provider.get_version()}`)
+        } else {
+            await this.provider.provider_api_axios.patch(`${this.provider.provider_url}/${this.provider.get_prefix()}/${this.provider.get_version()}/update_status`,{
+                entity_ref: this.task_entity,
+                status: {state: this.task_entity.status.state, ...status}
             });
         }
     }
