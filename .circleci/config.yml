@@ -1,14 +1,7 @@
-version: 2
-jobs:
-  build:
-    docker:
-      - image: circleci/node:10
-
+version: 2.1
+commands:
+  run_tests:
     steps:
-      - setup_remote_docker
-
-      - checkout
-
       - run:
           name: Login to dockerhub
           command: ./papiea-engine/docker-login.py
@@ -42,6 +35,18 @@ jobs:
             docker cp papiea-engine:/code/papiea-engine/coverage . || echo .
             docker cp papiea-engine:/code/papiea-engine/src/logs . || echo .
 
+jobs:
+  dev-build:
+    docker:
+      - image: circleci/node:10
+
+    steps:
+      - setup_remote_docker
+
+      - checkout
+
+      - run_tests
+
       - run: ./papiea-engine/publish-images.py
 
       - run: docker-compose down
@@ -61,6 +66,19 @@ jobs:
           path: logs
           destination: logs
 
+  papiea-test:
+    docker:
+      - image: circleci/node:10
+
+    steps:
+      - setup_remote_docker
+
+      - checkout
+
+      - run_tests
+
+      - run: docker-compose down
+
   release:
     docker:
       - image: circleci/node:10
@@ -79,13 +97,6 @@ jobs:
           command: ./papiea-engine/docker-login.py
 
       - run:
-          name: Build components
-          command: |
-            cp .circleci/docker-compose.yml .
-            cp .circleci/Dockerfile .
-            docker-compose build
-
-      - run:
           name: Login to git as Updater Bot
           command: |
             git config user.email "<>"
@@ -101,10 +112,19 @@ workflows:
   version: 2
   build-and-release:
     jobs:
-      - build
-      - release:
-          requires:
-            - build
+      - papiea-test:
           filters:
             branches:
               only: master
+      - release:
+          requires:
+            - papiea-test
+          filters:
+            branches:
+              only: master
+  build-development-version:
+    jobs:
+      - dev-build:
+          filters:
+            branches:
+              ignore: master

@@ -1,6 +1,7 @@
 version: '3.5'
 services:
         papiea-engine:
+                image: papiea-engine:debug
                 container_name: papiea-engine
                 build:
                         dockerfile: Dockerfile

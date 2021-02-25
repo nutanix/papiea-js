@@ -48,6 +48,7 @@ with open(".dockerignore", "w") as f:
 subprocess.check_call([
     'docker', 'build',
     '-t', build_tag,
+    '--cache-from=papiea-engine:debug',
     '-f', '.circleci/Dockerfile',
     '.'])
 
