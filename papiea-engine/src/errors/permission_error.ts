@@ -1,30 +1,22 @@
 import { PapieaException } from "./papiea_exception";
-import { PapieaExceptionContext } from "papiea-core"
+import { PapieaErrorDetails, PapieaError } from "papiea-core"
 
 export class PermissionDeniedError extends PapieaException {
-    message: string;
 
-    constructor(message: string, context: PapieaExceptionContext = {}) {
-        super("Permission Denied", context);
-        this.message = message;
+    constructor(error: PapieaErrorDetails) {
+        super(error);
+        this.name = PapieaError.PermissionDenied
         Object.setPrototypeOf(this, PermissionDeniedError.prototype);
     }
 
-    toErrors(): { [key: string]: any }[] {
-        return [{ message: this.message }];
-    }
 }
 
 export class UnauthorizedError extends PapieaException {
-    message: string;
 
-    constructor(message: string, context: PapieaExceptionContext = {}) {
-        super("Unauthorized", context);
-        this.message = message;
+    constructor(error: PapieaErrorDetails) {
+        super(error);
+        this.name = PapieaError.Unauthorized
         Object.setPrototypeOf(this, UnauthorizedError.prototype);
     }
 
-    toErrors(): { [key: string]: any }[] {
-        return [{ message: this.message }];
-    }
 }

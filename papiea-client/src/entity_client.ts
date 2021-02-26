@@ -9,17 +9,6 @@ import {
     IntentfulStatus,
     Status
 } from "papiea-core"
-import {
-    BadRequestError,
-    ConflictingEntityError,
-    EntityNotFoundError,
-    PermissionDeniedError,
-    ProcedureInvocationError,
-    PapieaServerError,
-    UnauthorizedError,
-    ValidationError,
-    PapieaException
-} from "./errors/errors";
 import {Tracer} from "opentracing"
 import {getTracer, spanOperation} from "papiea-backend-utils"
 
@@ -79,32 +68,7 @@ function getHeaders(s2skey: string): any {
 }
 
 function make_request<T = any, Y = AxiosPromise<T>>(f: (url: string, data?: any, config?: AxiosRequestConfig) => Y, url: string, data?: any, config?: AxiosRequestConfig): Y {
-    try {
-        return f(url, data, config)
-    } catch (e) {
-        switch (e?.response?.data?.error.type) {
-            case PapieaError.ConflictingEntity:
-                throw new ConflictingEntityError(e.response.data.error.message, e)
-            case PapieaError.PermissionDenied:
-                throw new PermissionDeniedError(e.response.data.error.message, e)
-            case PapieaError.EntityNotFound:
-                throw new EntityNotFoundError(e.response.data.error.message, e)
-            case PapieaError.ProcedureInvocation:
-                throw new ProcedureInvocationError(e.response.data.error.message, e)
-            case PapieaError.Unauthorized:
-                throw new UnauthorizedError(e.response.data.error.message, e)
-            case PapieaError.Validation:
-                throw new ValidationError(e.response.data.error.message, e)
-            case PapieaError.BadRequest:
-                throw new BadRequestError(e.response.data.error.message, e)
-            case PapieaError.ServerError:
-                throw new PapieaServerError(e.response.data.error.message, e)
-            case PapieaError.PapieaException:
-                throw new PapieaException(e.response.data.error.message, e)
-            default:
-                throw new Error(e)
-        }
-    }
+    return f(url, data, config)
 }
 
 async function create_entity(provider: string, kind: string, version: string, payload: any, papiea_url: string, s2skey: string, tracer: Tracer): Promise<EntityCreationResult> {

@@ -1,6 +1,7 @@
 import {Provider_DB} from "../databases/provider_db_interface"
 import {FieldBehavior, IntentfulBehaviour, Kind, Procedural_Signature, Provider, SwaggerValidatorErrorMessages} from "papiea-core"
 import { ValidationError } from "../errors/validation_error";
+import { PapieaException } from "../errors/papiea_exception";
 
 const SwaggerParser = require("@apidevtools/swagger-parser");
 
@@ -8,10 +9,10 @@ function getConstructorProcedureName(kind: Kind): string {
     return `__${kind.name}_create`
 }
 
-function translateSwaggerErrors(swaggerErrors: any, translatedErrors: Error[], path: string = '') {
+function translateSwaggerErrors(swaggerErrors: any, translatedErrorMessages: string[], path: string = '') {
     swaggerErrors.forEach((error: any) => {
         if (error.hasOwnProperty("inner")) {
-            translateSwaggerErrors(error.inner, translatedErrors, error.path.join('.'))
+            translateSwaggerErrors(error.inner, translatedErrorMessages, error.path.join('.'))
         } else {
             // Translate message for the inner most error structure
             if (!path.includes("-Spec") && !path.includes("-Status")) {
@@ -34,23 +35,27 @@ function translateSwaggerErrors(swaggerErrors: any, translatedErrors: Error[], p
                         error.message = error.message.replace(`${index1} and `, "")
                         const index2 = error.message.substring(0, error.message.length - 1)
                         const fieldName = error.path[error.path.length-1]
-                        message = `Schema field: ${path}.${fieldName} has duplicate values at indexes ${index1} and ${index2}`
+                        message = `Schema field: ${path}.${fieldName} has duplicate values at indexes ${index1} and ${index2}. Modify/eliminate one of the duplicate fields.`
                     }
-                    translatedErrors.push(new Error(message))
+                    translatedErrorMessages.push(message)
                 }
             }
         }
     })
 }
 
-async function validateOpenAPISchema(root: any) {
+async function validateOpenAPISchema(root: any, provider_prefix: string, provider_version: string) {
     try {
         await SwaggerParser.validate(root);
     } catch(err) {
-        let translatedErrors: Error[] = []
-        translateSwaggerErrors(err.details, translatedErrors)
-        if (translatedErrors.length > 0) {
-            throw new ValidationError(translatedErrors)
+        let translatedErrorMessages: string[] = []
+        translateSwaggerErrors(err.details, translatedErrorMessages)
+        if (translatedErrorMessages.length > 0) {
+            throw new ValidationError({
+                message: "Validation failed for provider OpenAPI schema",
+                entity_info: {provider_prefix, provider_version},
+                cause: new PapieaException({ message: translatedErrorMessages.join('\\n') })
+            })
         }
     }
 }
@@ -1007,7 +1012,7 @@ export default class ApiDocsGenerator {
         // Copying root object using JSON methods since shallow copy causes
         // the root model's refs to be resolved and creates redundancy in
         // the OpenAPI schema.
-        await validateOpenAPISchema(JSON.parse(JSON.stringify(root)))
+        await validateOpenAPISchema(JSON.parse(JSON.stringify(root)), provider.prefix, provider.version)
 
         return root;
     }

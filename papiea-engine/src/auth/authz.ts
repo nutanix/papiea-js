@@ -71,16 +71,16 @@ export class IntentWatcherAuthorizer extends Authorizer {
     async checkPermission(user: UserAuthInfo, object: IntentWatcher, action: Action): Promise<void> {
         if (object === undefined || object === null) {
             // We shouldn't reach this under normal circumstances
-            throw new BadRequestError("No intent watcher provided in the authorizer permission check")
+            throw new BadRequestError({ message: "No intent watcher provided in the authorizer permission check." })
         }
         if (user === undefined || user === null) {
             // We shouldn't reach this under normal circumstances
-            throw new PermissionDeniedError(`No user provided to check permission for intent watcher on kind ${object.entity_ref.provider_prefix}/${object.entity_ref.provider_version}/${object.entity_ref.kind}`, { provider_prefix: object.entity_ref.provider_prefix, provider_version: object.entity_ref.provider_version, kind_name: object.entity_ref.kind, additional_info: { "entity_uuid": object.entity_ref.uuid, "watcher_uuid": object.uuid }})
+            throw new PermissionDeniedError({ message: `No user provided to check permission for intent watcher on kind: ${object.entity_ref.provider_prefix}/${object.entity_ref.provider_version}/${object.entity_ref.kind}. Specify a valid user.`, entity_info: { provider_prefix: object.entity_ref.provider_prefix, provider_version: object.entity_ref.provider_version, kind_name: object.entity_ref.kind, additional_info: { "entity_uuid": object.entity_ref.uuid, "watcher_uuid": object.uuid }}})
         }
         const entity_ref: Provider_Entity_Reference = object.entity_ref;
         if (entity_ref === undefined || object === null) {
             // We shouldn't reach this under normal circumstances
-            throw new BadRequestError(`No entity ref present in the intent watcher object for check permission for provider ${object.entity_ref.provider_prefix}/${object.entity_ref.provider_version}`, { provider_prefix: object.entity_ref.provider_prefix, provider_version: object.entity_ref.provider_version, additional_info: { "watcher_uuid": object.uuid }})
+            throw new BadRequestError({ message: `No entity ref present in the intent watcher object for check permission for provider: ${object.entity_ref.provider_prefix}/${object.entity_ref.provider_version}. Make sure the watcher has an associated entity.`, entity_info: { provider_prefix: object.entity_ref.provider_prefix, provider_version: object.entity_ref.provider_version, additional_info: { "watcher_uuid": object.uuid }}})
         }
 
         const provider: Provider = await this.provider_db.get_provider(entity_ref.provider_prefix, entity_ref.provider_version);
@@ -123,14 +123,14 @@ export class PerProviderAuthorizer extends Authorizer {
     async checkPermission(user: UserAuthInfo, object: any, action: Action, provider?: Provider): Promise<void> {
         if (provider === undefined || provider === null) {
             // We shouldn't reach this under normal circumstances
-            throw new BadRequestError("No provider exists in the provider check permission")
+            throw new BadRequestError({ message: "No provider exists in the provider check permission. Specify a valid provider." })
         }
         const authorizer: Authorizer | null = await this.getAuthorizerByObject(provider!)
         if (authorizer === null) {
             return;
         }
         if (!user) {
-            throw new UnauthorizedError(`No user provided in the provider check permission for provider ${provider.prefix}/${provider.version}`, { provider_prefix: provider.prefix, provider_version: provider.version });
+            throw new UnauthorizedError({ message: `No user provided in the provider check permission for provider: ${provider.prefix}/${provider.version}. Make sure you have a valid user.`, entity_info: { provider_prefix: provider.prefix, provider_version: provider.version }});
         }
         if (user.is_admin) {
             return;
@@ -140,7 +140,7 @@ export class PerProviderAuthorizer extends Authorizer {
             if (user.provider_prefix === provider!.prefix) {
                 return;
             } else {
-                throw new PermissionDeniedError(`Provider admin has wrong prefix for the provider in check permission ${provider.prefix}/${provider.version}`, { provider_prefix: provider.prefix, provider_version: provider.version, additional_info: { "provider_admin": JSON.stringify(user) }});
+                throw new PermissionDeniedError({ message: `Provider admin has wrong prefix for the provider in check permission: ${provider.prefix}/${provider.version}. Make sure the provider admin has correct prefix for provider.`, entity_info: { provider_prefix: provider.prefix, provider_version: provider.version, additional_info: { "provider_admin": JSON.stringify(user) }}});
             }
         }
         return authorizer.checkPermission(user, object, action, provider);
@@ -150,7 +150,7 @@ export class PerProviderAuthorizer extends Authorizer {
 export class AdminAuthorizer extends Authorizer {
     async checkPermission(user: UserAuthInfo, object: any, action: Action): Promise<void> {
         if (!user) {
-            throw new UnauthorizedError("No user provided in the admin authorizer permission check");
+            throw new UnauthorizedError({ message: "No user provided in the admin authorizer permission check. Make sure you have a valid user." });
         }
         if (user.is_admin) {
             return;
@@ -159,25 +159,25 @@ export class AdminAuthorizer extends Authorizer {
             // object.user_info contains UserInfo which will be used when s2s key is passed
             // check who can talk on behalf of whom
             if (object.owner !== user.owner || object.user_info.is_admin) {
-                throw new PermissionDeniedError(`User has wrong owner for the object in admin permission check to create s2skey`, { additional_info: { "user": JSON.stringify(user), "object_owner": object.owner }});
+                throw new PermissionDeniedError({ message: `User has wrong owner for the object in admin permission check to create s2skey. Make sure the object has correct owner.`, entity_info: { additional_info: { "user": JSON.stringify(user), "object_owner": object.owner }}});
             }
             if (user.provider_prefix !== undefined
                 && object.provider_prefix !== user.provider_prefix) {
-                throw new PermissionDeniedError(`User has wrong provider prefix for the object in admin permission check to create s2skey for provider ${object.provider_prefix}`, { provider_prefix: object.provider_prefix, additional_info: { "user": JSON.stringify(user) }});
+                throw new PermissionDeniedError({ message: `User has wrong provider prefix for the object in admin permission check to create s2skey for provider: ${object.provider_prefix}. Make sure the user has correct prefix for provider.`, entity_info: { provider_prefix: object.provider_prefix, additional_info: { "user": JSON.stringify(user) }}});
             }
             if (user.is_provider_admin) {
                 return;
             }
             if (object.user_info.is_provider_admin
                 || object.user_info.owner !== user.owner) {
-                throw new PermissionDeniedError(`User has wrong owner for the object's user info in admin permission check to create s2skey`, { additional_info: { "user": JSON.stringify(user), "object_owner": object.owner }});
+                throw new PermissionDeniedError({ message: `User has wrong owner for the object's user info in admin permission check to create s2skey. Provider valid owner in the object's user info.`, entity_info: { additional_info: { "user": JSON.stringify(user), "object_owner": object.owner }}});
             }
             return;
         }
         if (action === Action.ReadS2SKey || action === Action.InactivateS2SKey) {
             if (object.owner !== user.owner
                 || (user.provider_prefix !== undefined && object.provider_prefix !== user.provider_prefix)) {
-                throw new PermissionDeniedError(`User has wrong provider prefix for the object in admin permission check to read/inactivate s2skey for provider ${object.provider_prefix}`, { provider_prefix: object.provider_prefix, additional_info:{ "user": JSON.stringify(user) }});
+                throw new PermissionDeniedError({ message: `User has wrong provider prefix for the object in admin permission check to read/inactivate s2skey for provider: ${object.provider_prefix}. Make sure the user has correct prefix for provider.`, entity_info: { provider_prefix: object.provider_prefix, additional_info:{ "user": JSON.stringify(user) }}});
             } else {
                 return;
             }
@@ -185,6 +185,6 @@ export class AdminAuthorizer extends Authorizer {
         if (user.is_provider_admin && object.prefix === user.provider_prefix) {
             return;
         }
-        throw new PermissionDeniedError(`Something went wrong in admin permission check`, { additional_info: { "user": JSON.stringify(user), "action": action, "entity": JSON.stringify(object) }});
+        throw new PermissionDeniedError({ message: `Something went wrong in admin permission check.`, entity_info: { additional_info: { "user": JSON.stringify(user), "action": action, "entity": JSON.stringify(object) }}});
     }
 }

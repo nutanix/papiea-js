@@ -24,7 +24,7 @@ export class SessionKeyDbMongo implements SessionKeyDb {
                 { expireAfterSeconds: 60 * 60 * 24 * 3 },
             );
         } catch (err) {
-            throw err
+            throw new PapieaException({ message: "Failed to setup the session key database.", cause: err })
         }
     }
 
@@ -38,7 +38,7 @@ export class SessionKeyDbMongo implements SessionKeyDb {
             "key": key,
         });
         if (result === null) {
-            throw new PapieaException("MongoDBError: Key not found");
+            throw new PapieaException({ message: "MongoDBError: Session key not found." });
         }
         return result;
     }
@@ -48,10 +48,10 @@ export class SessionKeyDbMongo implements SessionKeyDb {
             "key": key
         }, );
         if (result.result.n === undefined || result.result.ok !== 1) {
-            throw new PapieaException("MongoDBError: Failed to inactivate key");
+            throw new PapieaException({ message: "MongoDBError: Failed to inactivate session key." });
         }
         if (result.result.n !== 1 && result.result.n !== 0) {
-            throw new PapieaException(`MongoDBError: Amount of key inactivated must be 0 or 1, found: ${result.result.n}`);
+            throw new PapieaException({ message: `MongoDBError: Amount of session key inactivated must be 0 or 1, found ${result.result.n}.` });
         }
         return;
     }
@@ -63,7 +63,7 @@ export class SessionKeyDbMongo implements SessionKeyDb {
             $set: query
         })
         if (result.result.n !== 1) {
-            throw new PapieaException(`MongoDBError: Amount of updated entries doesn't equal to 1, got: ${result.result.n}`)
+            throw new PapieaException({ message: `MongoDBError: Amount of session key updated should equal to 1, found ${result.result.n} entries.` })
         }
     }
 }

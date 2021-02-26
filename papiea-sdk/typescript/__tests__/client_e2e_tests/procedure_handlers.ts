@@ -1,5 +1,4 @@
 import * as utils from "./utils"
-import { isAxiosError } from "../../../../papiea-engine/src/utils/utils";
 import { IntentfulCtx_Interface } from "../../src/provider_sdk/typescript_sdk";
 
 const config = require("./config")
@@ -60,11 +59,6 @@ export async function ensure_bucket_exists(ctx: IntentfulCtx_Interface, input_bu
             uuid: ret_entity.metadata.uuid,
             kind: ret_entity.metadata.kind
         }
-    } catch (e) {
-        if (isAxiosError(e)) {
-            throw new Error(e.response?.data.error.errors[0].message)
-        }
-        throw (e)
     } finally {
         bucket_entity_client.close()
         client.close()
@@ -119,11 +113,6 @@ export async function change_bucket_name(ctx: IntentfulCtx_Interface, entity_buc
             uuid: ret_entity.metadata.uuid,
             kind: ret_entity.metadata.kind
         }
-    } catch (e) {
-        if (isAxiosError(e)) {
-            throw new Error(e.response?.data.error.errors[0].message)
-        }
-        throw (e)
     } finally {
         bucket_entity_client.close()
         client.close()
@@ -188,11 +177,6 @@ export async function create_object(ctx: IntentfulCtx_Interface, entity_bucket: 
         } else {
             throw new Error("Object already exists in the bucket")
         }
-    } catch (e) {
-        if (isAxiosError(e)) {
-            throw new Error(e.response?.data.error.errors[0].message)
-        }
-        throw (e)
     } finally {
         object_entity_client.close()
         bucket_entity_client.close()
@@ -258,11 +242,6 @@ export async function link_object(ctx: IntentfulCtx_Interface, entity_bucket: an
         } else {
             throw new Error("Object already exists in the bucket")
         }
-    } catch (e) {
-        if (isAxiosError(e)) {
-            throw new Error(e.response?.data.error.errors[0].message)
-        }
-        throw (e)
     } finally {
         object_entity_client.close()
         bucket_entity_client.close()
@@ -317,11 +296,6 @@ export async function unlink_object(ctx: IntentfulCtx_Interface, entity_bucket: 
         } else {
             throw new Error("Object not found in the bucket")
         }
-    } catch (e) {
-        if (isAxiosError(e)) {
-            throw new Error(e.response?.data.error.errors[0].message)
-        }
-        throw (e)
     } finally {
         bucket_entity_client.close()
         client.close()
@@ -377,11 +351,6 @@ export async function bucket_name_handler(ctx: IntentfulCtx_Interface, entity_bu
 
         entity_bucket.status.name = entity_bucket.spec.name
         await ctx.update_status(entity_bucket.metadata, entity_bucket.status)
-    } catch (e) {
-        if (isAxiosError(e)) {
-            throw new Error(e.response?.data.error.errors[0].message)
-        }
-        throw (e)
     } finally {
         object_entity_client.close()
         client.close()
@@ -411,11 +380,6 @@ export async function on_object_added_handler(ctx: IntentfulCtx_Interface, entit
 
         entity_bucket.status.objects = entity_bucket.spec.objects
         await ctx.update_status(entity_bucket.metadata, entity_bucket.status)
-    } catch (e) {
-        if (isAxiosError(e)) {
-            throw new Error(e.response?.data.error.errors[0].message)
-        }
-        throw (e)
     } finally {
         object_entity_client.close()
         client.close()
@@ -446,11 +410,6 @@ export async function on_object_removed_handler(ctx: IntentfulCtx_Interface, ent
 
         entity_bucket.status.objects = entity_bucket.spec.objects
         await ctx.update_status(entity_bucket.metadata, entity_bucket.status)
-    } catch (e) {
-        if (isAxiosError(e)) {
-            throw new Error(e.response?.data.error.errors[0].message)
-        }
-        throw (e)
     } finally {
         object_entity_client.close()
         client.close()

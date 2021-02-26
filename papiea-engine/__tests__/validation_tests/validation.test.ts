@@ -179,7 +179,7 @@ describe("Validation tests", () => {
         expect.assertions(1)
         const id = uuid()
         expect(() => {
-            validator.validate_uuid(kind, id)
+            validator.validate_uuid('prefix', 'version', kind, id)
         }).not.toThrow()
     });
 
@@ -187,7 +187,7 @@ describe("Validation tests", () => {
         expect.assertions(1)
         const id = uuid()
         expect(() => {
-            validator.validate_uuid(kind_with_pattern, id)
+            validator.validate_uuid('prefix', 'version', kind_with_pattern, id)
         }).toThrow()
     });
 
@@ -195,7 +195,7 @@ describe("Validation tests", () => {
         expect.assertions(1)
         const id = "a"
         expect(() => {
-            validator.validate_uuid(kind_with_pattern, id)
+            validator.validate_uuid('prefix', 'version', kind_with_pattern, id)
         }).not.toThrow()
     });
 
@@ -203,7 +203,7 @@ describe("Validation tests", () => {
         expect.assertions(1)
         const id = "b"
         expect(() => {
-            validator.validate_uuid(kind_with_pattern, id)
+            validator.validate_uuid('prefix', 'version', kind_with_pattern, id)
         }).toThrow()
     });
 

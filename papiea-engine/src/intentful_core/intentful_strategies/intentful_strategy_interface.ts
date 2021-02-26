@@ -29,7 +29,7 @@ export abstract class IntentfulStrategy {
         if (exists) {
             const highest_spec_version = await this.graveyardDb.get_highest_spec_version(metadata)
             metadata.spec_version = spec_version
-            throw new GraveyardConflictingEntityError(metadata, spec, highest_spec_version)
+            throw new GraveyardConflictingEntityError(metadata, highest_spec_version)
         }
     }
 
@@ -53,7 +53,7 @@ export abstract class IntentfulStrategy {
         if (this.kind) {
             if (this.kind.kind_procedures[procedure_name]) {
                 if (this.user === undefined) {
-                    throw new UnauthorizedError(`No user provided in the delete entity request for kind ${entity.metadata?.provider_prefix}/${entity.metadata?.provider_version}/${entity.metadata?.kind}`, { provider_prefix: entity.metadata?.provider_prefix, provider_version: entity.metadata?.provider_version, kind_name: entity.metadata?.kind, additional_info: { "entity_uuid": entity.metadata?.uuid ?? '', "procedure_name": procedure_name }})
+                    throw new UnauthorizedError({ message: `No user provided in the delete entity request for kind: ${entity.metadata?.provider_prefix}/${entity.metadata?.provider_version}/${entity.metadata?.kind}. Make sure you have a correct user.`, entity_info: { provider_prefix: entity.metadata?.provider_prefix, provider_version: entity.metadata?.provider_version, kind_name: entity.metadata?.kind, additional_info: { "entity_uuid": entity.metadata?.uuid ?? '', "procedure_name": procedure_name }}})
                 }
                 try {
                     const span = spanOperation(`destructor`,
@@ -65,11 +65,11 @@ export abstract class IntentfulStrategy {
                     span.finish()
                     return data
                 } catch (e) {
-                    throw new OnActionError(e.response.data.message, { provider_prefix: entity.metadata?.provider_prefix, provider_version: entity.metadata?.provider_version, kind_name: entity.metadata?.kind, additional_info: { "entity_uuid": entity.metadata?.uuid ?? '', "procedure_name": procedure_name }})
+                    throw new OnActionError({ message: `Failed to execute destructor for entity of kind: ${entity.metadata?.provider_prefix}/${entity.metadata?.provider_version}/${entity.metadata?.kind}.`, entity_info: { provider_prefix: entity.metadata?.provider_prefix, provider_version: entity.metadata?.provider_version, kind_name: entity.metadata?.kind, additional_info: { "entity_uuid": entity.metadata?.uuid ?? '', "procedure_name": procedure_name }}, cause: e })
                 }
             }
         } else {
-            throw new OnActionError(`Could not delete the entity since kind ${entity.metadata?.provider_prefix}/${entity.metadata?.provider_version}/${entity.metadata?.kind} is not registered`, { provider_prefix: entity.metadata?.provider_prefix, provider_version: entity.metadata?.provider_version, kind_name: entity.metadata?.kind, additional_info: { "entity_uuid": entity.metadata?.uuid ?? '', "procedure_name": procedure_name }})
+            throw new OnActionError({ message: `Could not delete the entity since kind: ${entity.metadata?.provider_prefix}/${entity.metadata?.provider_version}/${entity.metadata?.kind} is not registered.`, entity_info: { provider_prefix: entity.metadata?.provider_prefix, provider_version: entity.metadata?.provider_version, kind_name: entity.metadata?.kind, additional_info: { "entity_uuid": entity.metadata?.uuid ?? '', "procedure_name": procedure_name }}})
         }
     }
 

@@ -59,8 +59,7 @@ describe("Entity API with metadata extension tests", () => {
         } catch (err) {
             const res = err.response;
             expect(res.status).toEqual(400);
-            expect(res.data.error.errors.length).toEqual(1);
-            expect(res.data.error.errors[0].message).toContain('Metadata extension is not specified for entity')
+            expect(res.data.error.error_details.message).toContain(`Failed to validate metadata extension for kind: ${providerPrefix}/${providerVersion}/${kind_name}. Make sure the metadata extension is defined.`)
 
         }
     });
@@ -80,8 +79,7 @@ describe("Entity API with metadata extension tests", () => {
         } catch (err) {
             const res = err.response;
             expect(res.status).toEqual(400);
-            expect(res.data.error.errors.length).toEqual(1);
-            expect(res.data.error.errors[0].message).toContain('Metadata extension is not specified for entity')
+            expect(res.data.error.error_details.message).toContain(`Failed to validate metadata extension for kind: ${providerPrefix}/${providerVersion}/${kind_name}. Make sure the metadata extension is defined.`)
 
         }
     });
@@ -101,8 +99,7 @@ describe("Entity API with metadata extension tests", () => {
         } catch (err) {
             const res = err.response;
             expect(res.status).toEqual(400);
-            expect(res.data.error.errors.length).toEqual(1);
-            expect(res.data.error.errors[0].message).toContain('Metadata extension is not specified for entity')
+            expect(res.data.error.error_details.message).toContain(`Failed to validate metadata extension for kind: ${providerPrefix}/${providerVersion}/${kind_name}. Make sure the metadata extension is defined.`)
 
         }
     });
@@ -122,8 +119,7 @@ describe("Entity API with metadata extension tests", () => {
         } catch (err) {
             const res = err.response;
             expect(res.status).toEqual(400);
-            expect(res.data.error.errors.length).toEqual(1);
-            expect(res.data.error.errors[0].message).toContain(`Metadata extension should be an object for entity`)
+            expect(res.data.error.error_details.message).toContain(`Failed to validate metadata extension for kind: ${providerPrefix}/${providerVersion}/${kind_name}. Metadata extension should be an object.`)
 
         }
     });
@@ -143,8 +139,7 @@ describe("Entity API with metadata extension tests", () => {
         } catch (err) {
             const res = err.response;
             expect(res.status).toEqual(400);
-            expect(res.data.error.errors.length).toEqual(1);
-            expect(res.data.error.errors[0].message).toContain('Metadata extension should be an object for entity')
+            expect(res.data.error.error_details.message).toContain(`Failed to validate metadata extension for kind: ${providerPrefix}/${providerVersion}/${kind_name}. Metadata extension should be an object.`)
 
         }
     });
@@ -166,8 +161,7 @@ describe("Entity API with metadata extension tests", () => {
         } catch (err) {
             const res = err.response;
             expect(res.status).toEqual(400);
-            expect(res.data.error.errors.length).toEqual(1);
-            expect(res.data.error.errors[0].message).toContain('Metadata extension is not specified for entity')
+            expect(res.data.error.error_details.message).toContain(`Failed to validate metadata extension for kind: ${providerPrefix}/${providerVersion}/${kind_name}. Make sure the metadata extension is defined.`)
 
         }
     });
@@ -200,7 +194,7 @@ describe("Entity API with metadata extension tests", () => {
     });
 
     test("Create entity with non-valid metadata extension", async () => {
-        expect.assertions(2);
+        expect.assertions(1);
         try {
             await entityApi.post(`/${providerPrefix}/${providerVersion}/${kind_name}`, {
                 spec: {
@@ -217,7 +211,6 @@ describe("Entity API with metadata extension tests", () => {
         } catch (err) {
             const res = err.response;
             expect(res.status).toEqual(400);
-            expect(res.data.error.errors.length).toEqual(1);
         }
     });
 
@@ -233,7 +226,7 @@ describe("Entity API with metadata extension tests", () => {
     });
 
     test("Create entity with no metadata extension should display a friendly error", async () => {
-        expect.assertions(3);
+        expect.assertions(2);
         try {
             await entityApi.post(`/${providerPrefix}/${providerVersion}/${kind_name}`, {
                 spec: {
@@ -244,8 +237,7 @@ describe("Entity API with metadata extension tests", () => {
         } catch (err) {
             const res = err.response;
             expect(res.status).toEqual(400);
-            expect(res.data.error.errors.length).toEqual(1);
-            expect(res.data.error.errors[0].message).toContain('Metadata extension is not specified for entity');
+            expect(res.data.error.error_details.message).toContain(`Failed to validate metadata extension for kind: ${providerPrefix}/${providerVersion}/${kind_name}. Make sure the metadata extension is defined.`);
         }
     });
 });

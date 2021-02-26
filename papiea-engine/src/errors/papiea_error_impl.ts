@@ -10,108 +10,142 @@ import { PermissionDeniedError, UnauthorizedError } from "./permission_error";
 import { BadRequestError } from "./bad_request_error";
 import { PapieaError } from "papiea-core";
 import {Logger} from "papiea-backend-utils"
-import {PapieaExceptionContextImpl, PapieaException} from "../errors/papiea_exception"
+import { PapieaException } from "../errors/papiea_exception"
 import { OnActionError } from "./on_action_error";
 
 export class PapieaErrorResponseImpl implements PapieaResponse {
     error: {
         url: string,
-        errors: { [key: string]: any }[],
+        engine_version: string,
         code: number
         message: string,
-        type: PapieaError,
-        entity_info: { [key: string]: any }
+        cause: any
     }
 
-    constructor(url: string, code: number, errorMsg: string, type: PapieaError, entity_context: PapieaExceptionContextImpl = new PapieaExceptionContextImpl(), errors?: { [key: string]: any }[]) {
-        if (errors) {
-            this.error = {
-                url,
-                code,
-                errors,
-                message: errorMsg,
-                type,
-                entity_info: entity_context.toResponse()
-            }
-        } else {
-            this.error = {
-                url,
-                code,
-                errors: [
-                    { message: errorMsg }
-                ],
-                message: errorMsg,
-                type,
-                entity_info: entity_context.toResponse()
-            }
+    constructor(url: string, papieaVersion: string, code: number, message: string, cause: any) {
+        this.error = {
+            url,
+            engine_version: papieaVersion,
+            code,
+            message,
+            cause
         }
-
     }
 
     public toString() {
-        const error_details = this.error.errors.reduce((acc, current) => {
-            for (let prop in current) {
-                acc = `${acc}; 
-                Cause: ${prop} - Error: ${current[prop]}`
-            }
-            return acc
-        }, "")
+        let logging_error_str: string = "\n"
 
-        if (this.error.entity_info === null || this.error.entity_info === undefined || Object.keys(this.error.entity_info).length === 0) {
-            return `URL: ${this.error.url}\nError msg: ${this.error.message}.\nDetails: ${error_details}`    
+        // Append URL in error logging string
+        logging_error_str = logging_error_str + `URL: ${this.error.url}\n`;
+
+        // Append Papiea engine version in error logging string
+        logging_error_str = logging_error_str + `Engine Version: ${this.error.engine_version}\n`
+
+        // Append error code in error logging string
+        logging_error_str = logging_error_str + `Status Code: ${this.error.code}\n`
+
+        // Append error message in error logging string
+        logging_error_str = logging_error_str + `Error: ${this.error.message}\n`
+
+        if (this.error.cause !== undefined && this.error.cause instanceof PapieaException) {
+            const papiea_exception = this.error.cause as PapieaException
+
+            // Append entity information in error logging string
+            if (papiea_exception.entity_info !== undefined && Object.keys(papiea_exception.entity_info).length) {
+                logging_error_str = logging_error_str + `Exception Context: ${papiea_exception.entity_info.toString()}\n`;
+            }
+
+            // Append error stack trace in error logging string
+            logging_error_str = logging_error_str + `Error Stacktrace:\n${papiea_exception.getDetailedStackTrace()}`
+        } else {
+            logging_error_str = logging_error_str + `Error Details:\n${this.error.cause.toString()}`
         }
-        return `URL: ${this.error.url}\nEntity Information: ${JSON.stringify(this.error.entity_info)}\nError msg: ${this.error.message}.\nDetails: ${error_details}`
+
+        return logging_error_str
     }
 
     public get status(): number {
         return this.error.code
     }
 
-    public toResponse() {
-        return this
+    public toResponse(): { [key: string]: any } {
+        if (this.error.cause !== undefined && this.error.cause instanceof PapieaException) {
+            const papiea_exception = this.error.cause as PapieaException
+            return {
+                error: {
+                    url: this.error.url,
+                    engine_version: this.error.engine_version,
+                    code: this.error.code,
+                    message: this.error.message,
+                    type: papiea_exception.name,
+                    papiea_context: papiea_exception.entity_info.toResponse(),
+                    error_details: papiea_exception.toResponse()
+                }
+            }
+        }
+        return {
+            error: {
+                url: this.error.url,
+                engine_version: this.error.engine_version,
+                code: this.error.code,
+                message: this.error.message,
+                cause: this.error.cause
+            }
+        }
     }
 
-    static create(logger: Logger): (err: Error, req: any) => PapieaErrorResponseImpl {
-        return (err: Error, req: any) => {
+    static create(logger: Logger): (err: any, req: any, papieaVersion: string) => PapieaErrorResponseImpl {
+        return (err: any, req: any, papieaVersion: string) => {
+            let status_code: number
+            let message: string
             switch (err.constructor) {
                 case BadRequestError:
-                    return new PapieaErrorResponseImpl(req.url, 400, "Bad Request", PapieaError.BadRequest, (err as BadRequestError).entity_info,
-                                                       (err as BadRequestError).toErrors())
+                    status_code = 400
+                    message = "Bad Request"
+                    break
                 case ValidationError:
-                    return new PapieaErrorResponseImpl(req.url, 400, "Validation failed.", PapieaError.Validation, (err as ValidationError).entity_info, (err as ValidationError).toErrors())
+                    status_code = 400
+                    message = "Validation Failed"
+                    break
                 case ProcedureInvocationError:
-                    return new PapieaErrorResponseImpl(req.url, (err as ProcedureInvocationError).status, "Procedure invocation failed.", PapieaError.ProcedureInvocation, (err as ProcedureInvocationError).entity_info, (err as ProcedureInvocationError).toErrors())
+                    status_code = (err as ProcedureInvocationError).status
+                    message = "Procedure Invocation Failed"
+                    break
                 case EntityNotFoundError:
-                    return new PapieaErrorResponseImpl(
-                        req.url,
-                        404,
-                        "Entity not found.",
-                        PapieaError.EntityNotFound,
-                        (err as EntityNotFoundError).entity_info,
-                        (err as EntityNotFoundError).toErrors(),
-                    )
+                    status_code = 404
+                    message = "Entity Not Found"
+                    break
                 case UnauthorizedError:
-                    return new PapieaErrorResponseImpl(req.url, 401, "Unauthorized.", PapieaError.Unauthorized, (err as UnauthorizedError).entity_info, (err as UnauthorizedError).toErrors())
+                    status_code = 401
+                    message = "Unauthorized"
+                    break
                 case PermissionDeniedError:
-                    return new PapieaErrorResponseImpl(req.url, 403, "Permission denied.", PapieaError.PermissionDenied, (err as PermissionDeniedError).entity_info, (err as PermissionDeniedError).toErrors())
+                    status_code = 403
+                    message = "Permission Denied"
+                    break
                 case GraveyardConflictingEntityError:
-                    let graveyardErr = err as GraveyardConflictingEntityError
-                    let meta = graveyardErr.existing_metadata
-
-                    return new PapieaErrorResponseImpl(req.url, 409, `${graveyardErr.message}: uuid - ${meta.uuid}, maximum current spec version - ${graveyardErr.highest_spec_version}`, PapieaError.ConflictingEntity, (err as GraveyardConflictingEntityError).entity_info)
+                    status_code = 409
+                    message = "Deleted Entity Conflict Error"
+                    break
                 case ConflictingEntityError:
-                    let conflictingError = err as ConflictingEntityError
-                    let metadata = conflictingError.existing_metadata
-
-                    return new PapieaErrorResponseImpl(req.url, 409, `Conflicting Entity: ${metadata.uuid}. Existing entity has version ${metadata.spec_version}`, PapieaError.ConflictingEntity, (err as ConflictingEntityError).entity_info)
+                    status_code = 409
+                    message = "Conflicting Entity Error"
+                    break
                 case OnActionError:
-                    return new PapieaErrorResponseImpl(req.url, 500, "On Action Error", PapieaError.OnActionError, (err as OnActionError).entity_info, (err as OnActionError).toErrors())
+                    status_code = 500
+                    message = "On Action Error"
+                    break
                 case PapieaException:
-                    return new PapieaErrorResponseImpl(req.url, 500, `Papiea Exception`, PapieaError.PapieaException, (err as PapieaException).entity_info, (err as PapieaException).toErrors())
+                    status_code = 500
+                    message = "Papiea Exception"
+                    break
                 default:
-                    logger.error(`Papiea encountered unexpected error: ${err}`)
-                    return new PapieaErrorResponseImpl(req.url, 500, err.message, PapieaError.ServerError)
+                    status_code = 500
+                    message = "Server Error"
+                    err.name = PapieaError.ServerError
+                    break
             }
+            return new PapieaErrorResponseImpl(req.url, papieaVersion, status_code, message, err)
         }
     }
 }

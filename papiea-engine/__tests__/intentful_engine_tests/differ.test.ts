@@ -81,7 +81,7 @@ describe("Differ tests", () => {
         try {
             SFSCompiler.try_compile_sfs("wrong_sfs, wrong_sfs2", "test_kind")
         } catch (e) {
-            expect(e.errors[0]).toContain("SFS parsing on kind //test_kind failed with error: Parse error at line 1,")
+            expect(e.message).toContain("Failed to validate the sfs on kind: //test_kind.")
         }
     })
 

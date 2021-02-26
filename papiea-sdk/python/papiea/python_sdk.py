@@ -24,7 +24,7 @@ from .core import (
     ConstructorResult, CreateS2SKeyRequest
 )
 from .python_sdk_context import IntentfulCtx, ProceduralCtx
-from .python_sdk_exceptions import InvocationError, SecurityApiError
+from .python_sdk_exceptions import ApiException, InvocationError, SecurityApiError
 from .utils import json_loads_attrs, validate_error_codes
 from .tracing_utils import init_default_tracer, get_special_operation_name
 
@@ -92,7 +92,7 @@ class SecurityApi(object):
             )
             return res
         except Exception as e:
-            raise SecurityApiError.from_error(e, f"Cannot get user info for provider with prefix: {self.provider.get_prefix()} and version: {self.provider.get_version()} and s2skey: {self.s2s_key}")
+            raise SecurityApiError.from_error(e, f"Cannot get user info for provider: {self.provider.get_prefix()}/{self.provider.get_version()} and s2skey: {self.s2s_key}.")
 
     async def list_keys(self) -> List[S2SKey]:
         try:
@@ -102,7 +102,7 @@ class SecurityApi(object):
             )
             return res
         except Exception as e:
-            raise SecurityApiError.from_error(e, f"Cannot list s2s keys for provider with prefix: {self.provider.get_prefix()} and version: {self.provider.get_version()} and s2skey: {self.s2s_key}")
+            raise SecurityApiError.from_error(e, f"Cannot list s2s keys for provider: {self.provider.get_prefix()}/{self.provider.get_version()} and s2skey: {self.s2s_key}.")
 
     async def create_key(self, new_key: CreateS2SKeyRequest) -> S2SKey:
         try:
@@ -114,7 +114,7 @@ class SecurityApi(object):
             )
             return res
         except Exception as e:
-            raise SecurityApiError.from_error(e, f"Cannot create s2s key for provider with prefix: {self.provider.get_prefix()} and version: {self.provider.get_version()} and s2skey: {self.s2s_key}")
+            raise SecurityApiError.from_error(e, f"Cannot create s2s key for provider: {self.provider.get_prefix()}/{self.provider.get_version()} and s2skey: {self.s2s_key}.")
 
     async def deactivate_key(self, key_to_deactivate: str) -> Any:
         try:
@@ -126,7 +126,7 @@ class SecurityApi(object):
             )
             return res
         except Exception as e:
-            raise SecurityApiError.from_error(e, f"Cannot deactivate s2s key for provider with prefix: {self.provider.get_prefix()} and version: {self.provider.get_version()} and s2skey: {self.s2s_key}")
+            raise SecurityApiError.from_error(e, f"Cannot deactivate s2s key for provider: {self.provider.get_prefix()}/{self.provider.get_version()} and s2skey: {self.s2s_key}.")
 
 
 class ProviderSdk(object):
@@ -302,7 +302,7 @@ class ProviderSdk(object):
             except InvocationError as e:
                 return web.json_response(e.to_response(), status=e.status_code)
             except Exception as e:
-                e = InvocationError.from_error(e)
+                e = InvocationError.from_error(e, str(e))
                 return web.json_response(e.to_response(), status=e.status_code)
 
         self._server_manager.register_handler("/" + name, procedure_callback_fn)
@@ -448,7 +448,7 @@ class KindBuilder:
             except InvocationError as e:
                 return web.json_response(e.to_response(), status=e.status_code)
             except Exception as e:
-                e = InvocationError.from_error(e)
+                e = InvocationError.from_error(e, str(e))
                 return web.json_response(e.to_response(), status=e.status_code)
 
         self.server_manager.register_handler(
@@ -498,7 +498,7 @@ class KindBuilder:
             except InvocationError as e:
                 return web.json_response(e.to_response(), status=e.status_code)
             except Exception as e:
-                e = InvocationError.from_error(e)
+                e = InvocationError.from_error(e, str(e))
                 return web.json_response(e.to_response(), status=e.status_code)
 
         self.server_manager.register_handler(
@@ -570,7 +570,7 @@ class KindBuilder:
             except InvocationError as e:
                 return web.json_response(e.to_response(), status=e.status_code)
             except Exception as e:
-                e = InvocationError.from_error(e)
+                e = InvocationError.from_error(e, str(e))
                 return web.json_response(e.to_response(), status=e.status_code)
 
         self.server_manager.register_handler(

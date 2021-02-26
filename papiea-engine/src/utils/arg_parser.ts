@@ -9,6 +9,7 @@ import {
     PapieaTracingConfig,
     tracingConfigSchema
 } from "./arg_parser_schemas"
+import { PapieaException } from "../errors/papiea_exception"
 
 const PAPIEA_CONFIG_PATH = process.env.PAPIEA_CONFIG_PATH ?? path.join(__dirname, "../../papiea-config.yaml")
 
@@ -28,17 +29,18 @@ function toComplex(schema: any): (val: any) => any {
         } else if (typeof rawValue === "object") {
             value = rawValue
         } else {
-            throw new ValidationError([new Error(`Complex error should be represented by a string value, found: ${rawValue}`)])
-
+            throw new ValidationError({
+               message: `Failed to validate complex type, should be represented by a string value found ${rawValue}.`
+            })
         }
         if (validate(value)) {
             return value
         } else {
             console.error(`Couldn't validate value: ${JSON.stringify(value)}`)
             for (const err of validate.errors as DefinedError[]) {
-                console.error(JSON.stringify(err))
+                console.error(JSON.stringify(err, null, 4))
             }
-            throw new ValidationError(validate.errors as any)
+            throw new ValidationError({ message: `Failed to validate value: ${JSON.stringify(value)}.`, cause: validate.errors as any })
         }
     }
 }
@@ -50,7 +52,7 @@ function toNum(val: string): number {
     try {
         return Number.parseFloat(val)
     } catch (e) {
-        throw new ValidationError([new Error(`Couldn't validate ${val}, expected number`)])
+        throw new ValidationError({ message: `Couldn't validate ${val}, expected number.`, cause: e })
     }
 }
 const toStr: (val: string) => string = (val: string) => val

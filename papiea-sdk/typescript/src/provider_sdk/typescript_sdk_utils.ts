@@ -1,7 +1,7 @@
 import {Entity, ErrorSchemas, Provider} from "papiea-core"
 import {Request} from "express"
 import {FORMAT_HTTP_HEADERS, Span, Tracer} from "opentracing"
-import {ProceduralCtx_Interface} from "./typescript_sdk_interface"
+import { AxiosError } from "axios"
 
 export function validate_error_codes(error_desc: ErrorSchemas | undefined) {
     if (error_desc) {
@@ -49,4 +49,8 @@ function isSpecialProcedure(pattern: string) {
         const regexp = RegExp(pattern)
         return regexp.test(operationName)
     }
+}
+
+export function isAxiosError(e: Error): e is AxiosError {
+    return e.hasOwnProperty("response");
 }

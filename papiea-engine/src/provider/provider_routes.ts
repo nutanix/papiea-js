@@ -85,7 +85,7 @@ export default function createProviderAPIRouter(providerApi: Provider_API, trace
         allowed_body_params: ['user_info', 'name', 'owner', 'key']
     }), trace("create_key"), asyncHandler(async (req, res) => {
         if (req.body.user_info && req.body.user_info.provider_prefix) {
-            throw new BadRequestError(`provider_prefix should not be specified in the user info to create s2skey for provider ${req.params.prefix}/${req.params.version}`, { provider_prefix: req.params.prefix, provider_version: req.params.version });
+            throw new BadRequestError({ message: `provider_prefix should not be specified in the user info to create s2skey for provider: ${req.params.prefix}/${req.params.version}. Make sure to remove provider prefix in user info.`, entity_info: { provider_prefix: req.params.prefix, provider_version: req.params.version }});
         }
         const s2skey = await providerApi.create_key(req.user, req.body.name, req.body.owner, req.params.prefix,
             res.locals.ctx, req.body.user_info, req.body.key);

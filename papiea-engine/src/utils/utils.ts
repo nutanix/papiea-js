@@ -2,19 +2,25 @@ import { SortParams } from "../entity/entity_api_impl"
 import { ValidationError } from "../errors/validation_error"
 import { AxiosError } from "axios"
 import { Logger } from "papiea-backend-utils"
-import {BadRequestError} from "../errors/bad_request_error"
+import { BadRequestError } from "../errors/bad_request_error"
 import { PapieaException } from "../errors/papiea_exception"
+import { PapieaError, PapieaExceptionContext } from "papiea-core"
+import { ProcedureInvocationError } from "../errors/procedure_invocation_error";
+import { PermissionDeniedError, UnauthorizedError } from "../errors/permission_error";
+import { ConflictingEntityError, EntityNotFoundError } from "../databases/utils/errors"
+import { OnActionError } from "../errors/on_action_error"
+
 const semver = require('semver')
 
 function validatePaginationParams(offset: number | undefined, limit: number | undefined) {
     if (offset !== undefined) {
         if (offset < 0) {
-            throw new ValidationError([new PapieaException(`Offset should be greater than or equal to zero, received: ${offset}`)])
+            throw new ValidationError({ message: `Failed to validate offset value. Offset should be greater than or equal to zero, received ${offset}.` })
         }
     }
     if (limit !== undefined) {
         if (limit <= 0) {
-            throw new ValidationError([new PapieaException(`Limit should be greater than zero, received: ${limit}`)])
+            throw new ValidationError({ message: `Failed to validate limit value. Limit should be greater than zero, received ${limit}.` })
         }
     }
 }
@@ -63,7 +69,7 @@ export function processSortQuery(query: string | undefined): undefined | SortPar
                 processedQuery[field] = 1;
                 break;
             default:
-                throw new ValidationError([new PapieaException(`Sorting key's value must be either 'asc' or 'desc', received: ${sortOrd}`)])
+                throw new ValidationError({ message: `Failed to validate sorting key. Sorting key's value must be either 'asc' or 'desc', received ${sortOrd}.` })
         }
     });
     return processedQuery;
@@ -174,12 +180,63 @@ export function getVersionVerifier(enginePapieaVersion: string) {
         const headersPapieaVersion = req.headers['papiea-version']
         if (headersPapieaVersion) {
             if (semver.valid(headersPapieaVersion) === null) {
-                throw new BadRequestError(`Received invalid papiea version: ${headersPapieaVersion}, valid example: ${enginePapieaVersion}`)
+                throw new BadRequestError({ message: `Received invalid papiea version: ${headersPapieaVersion}, valid version: ${enginePapieaVersion}` })
             }
             if (semver.diff(headersPapieaVersion, enginePapieaVersion) === 'major') {
-                throw new BadRequestError(`Received incompatible papiea version: ${headersPapieaVersion}, expected version compatible with ${headersPapieaVersion}`)
+                throw new BadRequestError({ message: `Received incompatible papiea version: ${headersPapieaVersion}, expected version compatible with ${headersPapieaVersion}` })
             }
         }
         next();
+    }
+}
+
+export function convertEntityInfoToExceptionContext(entity_info: any): PapieaExceptionContext {
+    const provider_prefix = entity_info.provider_prefix
+    const provider_version = entity_info.provider_version
+    const kind_name = entity_info.kind_name
+    let additional_info: { [key: string]: string; } = {};
+
+    for (let field in entity_info) {
+        if (field !== "provider_prefix" && field !== "provider_version" && field !== "kind_name") {
+            additional_info[field] = entity_info[field]
+        }
+    }
+
+    return { provider_prefix, provider_version, kind_name, additional_info }
+}
+export function convertAxiosErrorToEngineError(error: any): Error {
+    if (error === undefined) {
+        return new PapieaException({ message: 'Unknown Error' })
+    }
+    if (error.cause === undefined || error.cause.type === undefined) {
+        return new PapieaException({ message: error.message })
+    }
+
+    const message = error.cause.error_details.message ?? 'Unknown Error';
+    const entity_info = error.cause.error_details.entity_info ?? {};
+    const context = convertEntityInfoToExceptionContext(entity_info)
+
+    switch (error.cause.type) {
+        case PapieaError.BadRequest:
+            return new BadRequestError({ message, entity_info: context })
+        case PapieaError.Validation:
+            return new ValidationError({ message, entity_info: context })
+        case PapieaError.ProcedureInvocation:
+            return new ProcedureInvocationError({ message, entity_info: context}, error.cause.code)
+        case PapieaError.EntityNotFound:
+            return new EntityNotFoundError(entity_info.kind_name, entity_info.entity_uuid, entity_info.provider_prefix, entity_info.provider_version)
+        case PapieaError.Unauthorized:
+            return new UnauthorizedError({ message, entity_info: context })
+        case PapieaError.PermissionDenied:
+            return new PermissionDeniedError({ message, entity_info: context })
+        case PapieaError.ConflictingEntity:
+            const metadata = { provider_prefix: entity_info.provider_prefix, provider_version: entity_info.provider_version, kind: entity_info.kind_name, uuid: entity_info.entity_uuid, spec_version: parseInt(entity_info.existing_spec_version) }
+            return new ConflictingEntityError(message, metadata)
+        case PapieaError.OnActionError:
+            return new OnActionError({ message, entity_info: context })
+        case PapieaError.PapieaException:
+            return new PapieaException({ message, entity_info: context })
+        default:
+            return new Error(message)
     }
 }

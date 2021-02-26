@@ -22,7 +22,7 @@ export class IntentWatcher_DB_Mongo implements IntentWatcher_DB {
                 { unique: true },
             )
         } catch (err) {
-            throw err
+            throw new PapieaException({ message: "Failed to setup the intent watcher database.", cause: err })
         }
     }
 
@@ -48,10 +48,10 @@ export class IntentWatcher_DB_Mongo implements IntentWatcher_DB {
             $set: delta
         })
         if (result.result.n === undefined || result.result.ok !== 1) {
-            throw new PapieaException(`MongoDBError: Failed to update intent watcher with uuid: ${uuid}`);
+            throw new PapieaException({ message: `MongoDBError: Failed to update intent watcher with uuid: ${uuid}.` });
         }
         if (result.result.n !== 1 && result.result.n !== 0) {
-            throw new PapieaException(`MongoDBError: Amount of intent watchers updated must be 0 or 1, found: ${result.result.n} for uuid: ${uuid}`);
+            throw new PapieaException({ message: `MongoDBError: Amount of intent watchers updated must be 0 or 1, found ${result.result.n} for uuid: ${uuid}.` });
         }
     }
 
@@ -70,10 +70,10 @@ export class IntentWatcher_DB_Mongo implements IntentWatcher_DB {
             uuid
         })
         if (result.result.n === undefined || result.result.ok !== 1) {
-            throw new PapieaException(`MongoDBError: Failed to delete intent watcher with uuid: ${uuid}`);
+            throw new PapieaException({ message: `MongoDBError: Failed to delete intent watcher with uuid: ${uuid}.` });
         }
         if (result.result.n !== 1 && result.result.n !== 0) {
-            throw new PapieaException(`MongoDBError: Amount of deleted intent watchers must be 0 or 1, found: ${result.result.n} for uuid: ${uuid}`);
+            throw new PapieaException({ message: `MongoDBError: Amount of deleted intent watchers must be 0 or 1, found ${result.result.n} for uuid: ${uuid}.` });
         }
         return;
     }

@@ -85,7 +85,7 @@ export class MongoConnection {
         if (this.specDb !== undefined)
             return this.specDb;
         if (this.db === undefined)
-            throw new PapieaException("MongoDBError: Not connected to spec database");
+            throw new PapieaException({ message: "MongoDBError: Failed to connect to spec database." });
         this.specDb = new Spec_DB_Mongo(logger, this.db);
         await this.specDb.init();
         return this.specDb;
@@ -95,7 +95,7 @@ export class MongoConnection {
         if (this.providerDb !== undefined)
             return this.providerDb;
         if (this.db === undefined)
-            throw new PapieaException("MongoDBError: Not connected to provider database");
+            throw new PapieaException({ message: "MongoDBError: Failed to connect to provider database." });
         this.providerDb = new Provider_DB_Mongo(logger, this.db);
         await this.providerDb.init();
         return this.providerDb;
@@ -105,7 +105,7 @@ export class MongoConnection {
         if (this.statusDb !== undefined)
             return this.statusDb;
         if (this.db === undefined)
-            throw new PapieaException("MongoDBError: Not connected to status database");
+            throw new PapieaException({ message: "MongoDBError: Failed to connect to status database." });
         this.statusDb = new Status_DB_Mongo(logger, this.db);
         await this.statusDb.init();
         return this.statusDb;
@@ -115,7 +115,7 @@ export class MongoConnection {
         if (this.s2skeyDb !== undefined)
             return this.s2skeyDb;
         if (this.db === undefined)
-            throw new PapieaException("MongoDBError: Not connected to s2skey database");
+            throw new PapieaException({ message: "MongoDBError: Failed to connect to s2skey database." });
         this.s2skeyDb = new S2S_Key_DB_Mongo(logger, this.db);
         await this.s2skeyDb.init();
         return this.s2skeyDb;
@@ -125,7 +125,7 @@ export class MongoConnection {
         if (this.sessionKeyDb !== undefined)
             return this.sessionKeyDb;
         if (this.db === undefined)
-            throw new PapieaException("MongoDBError: Not connected to session key database");
+            throw new PapieaException({ message: "MongoDBError: Failed to connect to session key database." });
         this.sessionKeyDb = new SessionKeyDbMongo(logger, this.db);
         await this.sessionKeyDb.init();
         return this.sessionKeyDb;
@@ -135,7 +135,7 @@ export class MongoConnection {
         if (this.intentWatcherDb !== undefined)
             return this.intentWatcherDb;
         if (this.db === undefined)
-            throw new PapieaException("MongoDBError: Not connected to intent watcher database");
+            throw new PapieaException({ message: "MongoDBError: Failed to connect to intent watcher database." });
         this.intentWatcherDb = new IntentWatcher_DB_Mongo(logger, this.db);
         await this.intentWatcherDb.init();
         return this.intentWatcherDb;
@@ -145,7 +145,7 @@ export class MongoConnection {
         if (this.watchlistDb !== undefined)
             return this.watchlistDb;
         if (this.db === undefined)
-            throw new PapieaException("MongoDBError: Not connected to watchlist database");
+            throw new PapieaException({ message: "MongoDBError: Failed to connect to watchlist database." });
         this.watchlistDb = new Watchlist_Db_Mongo(logger, this.db);
         await this.watchlistDb.init();
         return this.watchlistDb;
@@ -155,7 +155,7 @@ export class MongoConnection {
         if (this.graveyardDb !== undefined)
             return this.graveyardDb;
         if (this.db === undefined)
-            throw new PapieaException("MongoDBError: Not connected to graveyard database");
+            throw new PapieaException({ message: "MongoDBError: Failed to connect to graveyard database." });
         this.graveyardDb = new Graveyard_DB_Mongo(logger, this.db, this.client);
         await this.graveyardDb.init();
         return this.graveyardDb;

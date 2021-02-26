@@ -70,7 +70,7 @@ describe("Provider API tests", () => {
         try {
             await providerApi.post('/', provider);
         } catch (e) {
-            expect(e.response.data.error.errors[0].message).toBe("x-papiea has wrong value: status-only, the field should not be present");
+            expect(e.response.data.error.error_details.message).toBe("x-papiea has wrong value: status-only, the field should not be present.");
         }
     });
 
@@ -82,7 +82,7 @@ describe("Provider API tests", () => {
         try {
             await providerApi.post('/', provider);
         } catch (e) {
-            expect(e.response.data.error.errors[0].message).toBe("x-papiea has wrong value: spec-only, correct values are: status-only");
+            expect(e.response.data.error.error_details.message).toBe("x-papiea has wrong value: spec-only, correct values are: status-only.");
         }
     });
 
@@ -251,8 +251,8 @@ describe("Provider API tests", () => {
             });
         } catch (e) {
             expect(e).toBeDefined()
-            expect(e.response.data.error.message).toEqual("Validation failed.")
-            expect(e.response.data.error.errors[0].message).toContain(`Status body has undefined value for one/more fields which is not supported in papiea, use null value instead to remove the field from status`)
+            expect(e.response.data.error.message).toEqual("Validation Failed")
+            expect(e.response.data.error.error_details.message).toContain(`Failed to validate status for kind: ${ provider.prefix }/${provider.version}/${ kind_name }. Use null values instead of undefined to remove the status field.`)
         }
     });
 

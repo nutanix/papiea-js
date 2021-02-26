@@ -135,7 +135,7 @@ describe("Entity Client end-to-end tests", () => {
 
             await bucket_entity_client.invoke_procedure("create_object", bucket1_entity.metadata, { "object_name": object1_name })
         } catch (err) {
-            expect(err.response.data.error.errors[0].message).toBe("Object already exists in the bucket")
+            expect(err.response.data.error.error_details.message).toContain("Object already exists in the bucket")
         } finally {
             object_entity_client.close()
             bucket_entity_client.close()
@@ -324,7 +324,7 @@ describe("Entity Client end-to-end tests", () => {
 
             await bucket_entity_client.invoke_procedure("link_object", bucket1_entity.metadata, object_input)
         } catch (err) {
-            expect(err.response.data.error.errors[0].message).toBe("Object already exists in the bucket")
+            expect(err.response.data.error.error_details.message).toContain("Object already exists in the bucket")
         } finally {
             object_entity_client.close()
             bucket_entity_client.close()
@@ -380,7 +380,7 @@ describe("Entity Client end-to-end tests", () => {
 
             await bucket_entity_client.invoke_procedure("link_object", bucket2_entity.metadata, object_input)
         } catch (err) {
-            expect(err.response.data.error.errors[0].message).toBe("Object already exists in the bucket")
+            expect(err.response.data.error.error_details.message).toContain("Object already exists in the bucket")
         } finally {
             object_entity_client.close()
             bucket_entity_client.close()
@@ -408,7 +408,7 @@ describe("Entity Client end-to-end tests", () => {
 
             await bucket_entity_client.invoke_procedure("link_object", bucket1_entity.metadata, object_input)
         } catch (err) {
-            expect(err.response.data.error.errors[0].message).toBe("Entity shouldfailuuid not found")
+            expect(err.response.data.error.error_details.message).toContain("Entity with UUID shouldfailuuid of kind: object not found. Make sure the entity and kind is correct.")
         } finally {
             bucket_entity_client.close()
         }
@@ -514,7 +514,7 @@ describe("Entity Client end-to-end tests", () => {
             const object1_name = "test-object1"
             await bucket_entity_client.invoke_procedure("unlink_object", bucket1_entity.metadata, { "object_name": object1_name })
         } catch (err) {
-            expect(err.response.data.error.errors[0].message).toBe("Object not found in the bucket")
+            expect(err.response.data.error.error_details.message).toContain("Object not found in the bucket")
         } finally {
             bucket_entity_client.close()
         }

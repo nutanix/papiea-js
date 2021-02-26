@@ -89,14 +89,14 @@ export function createAuthnRouter(logger: Logger, userAuthInfoExtractor: UserAut
 
         const user_info = await userAuthInfoExtractor.getUserAuthInfo(token, provider_prefix, provider_version);
         if (user_info === null) {
-            throw new UnauthorizedError(`Failed to get user info token on provider ${provider_prefix}/${provider_version}`, { provider_prefix: provider_prefix, provider_version: provider_version, additional_info: { "user_token": token }})
+            throw new UnauthorizedError({ message: `Failed to get user info token on provider: ${provider_prefix}/${provider_version}. Verify the provider details and user values.`, entity_info: { provider_prefix: provider_prefix, provider_version: provider_version, additional_info: { "user_token": token }}})
         }
         if (urlParts.length > 1) {
             if (provider_prefix
                 && endpoint_path !== "update_status"
                 && (user_info.provider_prefix !== undefined && user_info.provider_prefix !== provider_prefix)
                 && !user_info.is_admin) {
-                throw new UnauthorizedError(`Invalid user info found for the token on provider ${provider_prefix}/${provider_version}`, { provider_prefix: provider_prefix, provider_version: provider_version, additional_info: { "user_token": token }});
+                throw new UnauthorizedError({ message: `Invalid user info found for the token on provider: ${provider_prefix}/${provider_version}. Make sure you have a valid user.`, entity_info: { provider_prefix: provider_prefix, provider_version: provider_version, additional_info: { "user_token": token }}});
             }
         }
         req.user = user_info;

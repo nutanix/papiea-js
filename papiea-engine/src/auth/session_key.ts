@@ -65,7 +65,7 @@ export class SessionKeyAPI {
             sessionKey.idpToken = accessToken
             return sessionKey
         } catch (e) {
-            throw new PapieaException(`Couldn't refresh the session token for user on provider ${provider_prefix}/${provider_version} due to error: ${e.message}`, {provider_prefix: provider_prefix, provider_version: provider_version, additional_info: { "user": JSON.stringify(sessionKey.user_info) }})
+            throw new PapieaException({ message: `Couldn't refresh the session token for user on provider: ${provider_prefix}/${provider_version}.`, entity_info: {provider_prefix: provider_prefix, provider_version: provider_version, additional_info: { "user": JSON.stringify(sessionKey.user_info) }}, cause: e })
         }
     }
 }

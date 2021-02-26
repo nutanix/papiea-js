@@ -677,7 +677,7 @@ describe("API docs test entity", () => {
     });
 
     test("Provider kinds with wrong field name in schema should throw validation error", async () => {
-        expect.assertions(2);
+        expect.assertions(1);
         try {
             const location_yaml = loadYamlFromTestFactoryDir("test_data/location_kind_test_data.yml");
 
@@ -695,13 +695,12 @@ describe("API docs test entity", () => {
             const apiDocsGenerator = new ApiDocsGenerator(providerDbMock);
             await apiDocsGenerator.getApiDocs(providerDbMock.provider);
         } catch (err) {
-            expect(err.errors.length).toBe(1)
-            expect(err.errors[0]).toBe("Schema has invalid name for the field: Location.decription")
+            expect(err.cause.message).toBe("Schema has invalid name for the field: Location.decription")
         }
     });
 
     test("Provider kinds with duplicate required fields should throw validation error", async () => {
-        expect.assertions(2);
+        expect.assertions(1);
         try {
             const location_yaml = loadYamlFromTestFactoryDir("test_data/location_kind_test_data.yml");
 
@@ -717,13 +716,12 @@ describe("API docs test entity", () => {
             const apiDocsGenerator = new ApiDocsGenerator(providerDbMock);
             await apiDocsGenerator.getApiDocs(providerDbMock.provider);
         } catch (err) {
-            expect(err.errors.length).toBe(1)
-            expect(err.errors[0]).toBe("Schema field: Location.properties.v.required has duplicate values at indexes 0 and 2")
+            expect(err.cause.message).toBe("Schema field: Location.properties.v.required has duplicate values at indexes 0 and 2. Modify/eliminate one of the duplicate fields.")
         }
     });
 
     test("Provider kinds with empty required list should throw validation error", async () => {
-        expect.assertions(2);
+        expect.assertions(1);
         try {
             const location_yaml = loadYamlFromTestFactoryDir("test_data/location_kind_test_data.yml");
 
@@ -739,8 +737,7 @@ describe("API docs test entity", () => {
             const apiDocsGenerator = new ApiDocsGenerator(providerDbMock);
             await apiDocsGenerator.getApiDocs(providerDbMock.provider);
         } catch (err) {
-            expect(err.errors.length).toBe(1)
-            expect(err.errors[0]).toBe("Expected list for schema field: Location.required to have minimum size: 1, received size: 0")
+            expect(err.cause.message).toBe("Expected list for schema field: Location.required to have minimum size: 1, received size: 0")
         }
     });
 });

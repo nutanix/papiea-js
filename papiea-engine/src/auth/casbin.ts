@@ -33,11 +33,11 @@ export class CasbinAuthorizer extends Authorizer {
     async checkPermission(user: UserAuthInfo, object: any, action: Action, provider?: Provider): Promise<void> {
         try {
             if (!this.enforcer.enforce(user, object, action)) {
-                throw new PermissionDeniedError(`User does not have permission for the entity on provider ${provider?.prefix}/${provider?.version}`, { provider_prefix: provider?.prefix, provider_version: provider?.version, additional_info: { "user": JSON.stringify(user), "action": action, "entity": JSON.stringify(object) }});
+                throw new PermissionDeniedError({ message: `User does not have permission for the entity on provider: ${provider?.prefix}/${provider?.version}. Add policy to allow access to the user.`, entity_info: { provider_prefix: provider?.prefix, provider_version: provider?.version, additional_info: { "user": JSON.stringify(user), "action": action, "entity": JSON.stringify(object) }}});
             }
         } catch (e) {
             this.logger.error("CasbinAuthorizer checkPermission error", e);
-            throw new PermissionDeniedError(`Authorizer failed to execute for user on provider ${provider?.prefix}/${provider?.version}`, { provider_prefix: provider?.prefix, provider_version: provider?.version, additional_info: { "user": JSON.stringify(user), "action": action, "entity": JSON.stringify(object) }});
+            throw new PermissionDeniedError({ message: `Authorizer failed to execute for user on provider: ${provider?.prefix}/${provider?.version}.`, entity_info: { provider_prefix: provider?.prefix, provider_version: provider?.version, additional_info: { "user": JSON.stringify(user), "action": action, "entity": JSON.stringify(object), cause: e}}});
         }
     }
 }
@@ -51,7 +51,7 @@ class CasbinMemoryAdapter implements Adapter {
 
     async loadPolicy(model: Model): Promise<void> {
         if (!this.policy) {
-            throw new PermissionDeniedError("Policy is not set in the authorizer");
+            throw new PermissionDeniedError({message: "Policy is not set in the authorizer. Set a valid policy."});
         }
         await this.loadPolicyFile(model, Helper.loadPolicyLine);
     }
@@ -68,19 +68,19 @@ class CasbinMemoryAdapter implements Adapter {
     }
 
     savePolicy(model: Model): Promise<boolean> {
-        throw new PapieaException('not implemented');
+        throw new PapieaException({ message: 'not implemented' });
     }
 
     addPolicy(sec: string, ptype: string, rule: string[]): Promise<void> {
-        throw new PapieaException('not implemented');
+        throw new PapieaException({ message: 'not implemented' });
     }
 
     removePolicy(sec: string, ptype: string, rule: string[]): Promise<void> {
-        throw new PapieaException('not implemented');
+        throw new PapieaException({ message: 'not implemented' });
     }
 
     removeFilteredPolicy(sec: string, ptype: string, fieldIndex: number, ...fieldValues: string[]): Promise<void> {
-        throw new PapieaException('not implemented');
+        throw new PapieaException({ message: 'not implemented' });
     }
 }
 
@@ -93,10 +93,10 @@ export class ProviderCasbinAuthorizerFactory implements ProviderAuthorizerFactor
 
     async createAuthorizer(provider: Provider): Promise<Authorizer> {
         if (!provider) {
-            throw new BadRequestError("No provider provided to create authorizer");
+            throw new BadRequestError({ message: "No provider provided to create authorizer. Please specify a valid provider." });
         }
         if (!provider.authModel || !provider.policy) {
-            throw new PermissionDeniedError(`Provider is missing auth model or policy, failed to create authorizer for provider ${provider.prefix}/${provider.version}`, { provider_prefix: provider.prefix, provider_version: provider.version });
+            throw new PermissionDeniedError({ message: `Provider is missing auth model or policy, failed to create authorizer for provider: ${provider.prefix}/${provider.version}.`, entity_info: { provider_prefix: provider.prefix, provider_version: provider.version }});
         }
         const authorizer = new CasbinAuthorizer(this.logger, provider.authModel, provider.policy);
         await authorizer.init();

@@ -323,21 +323,17 @@ export enum PapieaError {
     ConflictingEntity = "conflicting_entity_error",
     ServerError = "server_error",
     OnActionError = "on_action_error",
-    PapieaException = "papiea_exception"
+    PapieaException = "papiea_error"
 }
 
 export interface PapieaResponse {
     error: PapieaErrorResponse
 }
 
-
-// Modeled after https://developers.google.com/drive/api/v3/handle-errors
 export interface PapieaErrorResponse {
-    errors: { [ key: string ]: any }[]
     code: number
-    message: string
-    type: PapieaError
-    entity_info: { [key: string]: any}
+    message: string,
+    cause: Error
 }
 
 export interface PapieaExceptionContext {
@@ -345,6 +341,12 @@ export interface PapieaExceptionContext {
     provider_version?: string
     kind_name?: string
     additional_info?: { [key: string]: string}
+}
+
+export interface PapieaErrorDetails {
+    message: string;
+    entity_info?: PapieaExceptionContext;
+    cause?: any;
 }
 
 export enum Action {

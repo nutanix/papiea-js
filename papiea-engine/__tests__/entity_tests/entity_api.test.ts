@@ -60,7 +60,7 @@ describe("Entity API tests", () => {
     });
 
     test("Create entity with malformed spec should fail", async () => {
-        expect.assertions(2);
+        expect.assertions(1);
         try {
             await entityApi.post(`/${providerPrefix}/${providerVersion}/${kind_name}`, {
                 spec: {
@@ -71,7 +71,6 @@ describe("Entity API tests", () => {
         } catch (err) {
             const res = err.response;
             expect(res.status).toEqual(400);
-            expect(res.data.error.errors.length).toEqual(1);
         }
     });
 
@@ -351,7 +350,7 @@ describe("Entity API tests", () => {
     });
 
     test("Update entity with malformed spec should fail", async () => {
-        expect.assertions(3);
+        expect.assertions(2);
         try {
             const { data: { metadata, spec } } = await entityApi.post(`/${providerPrefix}/${providerVersion}/${kind_name}`, {
                 spec: {
@@ -372,7 +371,6 @@ describe("Entity API tests", () => {
         } catch (err) {
             const res = err.response;
             expect(res.status).toEqual(400);
-            expect(res.data.error.errors.length).toEqual(1);
         }
     });
 
@@ -437,7 +435,7 @@ describe("Entity API tests", () => {
             });
         } catch (e) {
             expect(e.response.status).toEqual(409)
-            expect(e.response.data.error.message).toEqual(`Conflicting Entity: ${entity_uuid}. Existing entity has version ${1}`)
+            expect(e.response.data.error.error_details.message).toEqual(`Entity with UUID ${entity_uuid} of kind: ${providerPrefix}/${providerVersion}/${kind_name} already exists.`)
         }
     });
 
@@ -519,7 +517,7 @@ describe("Entity API tests", () => {
             });
         } catch (e) {
             expect(e.response.status).toEqual(409)
-            expect(e.response.data.error.message).toEqual(`Deleted entity with this uuid and spec version exists: uuid - ${id}, maximum current spec version - 2`)
+            expect(e.response.data.error.error_details.message).toEqual(`Deleted entity with UUID ${id} of kind: ${providerPrefix}/${providerVersion}/${kind_name} already exists with this spec version.`)
         }
     });
 

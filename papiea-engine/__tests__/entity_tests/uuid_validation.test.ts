@@ -70,7 +70,7 @@ describe("Uuid validation tests", () => {
                 }
             })
         } catch (e) {
-            expect(e.response.data.error.errors[0].message).toBe(`Entity UUID does not match the pattern`)
+            expect(e.response.data.error.error_details.message).toBe(`Entity UUID for kind: ${ providerPrefix }/${ providerVersion }/${ kind_name } does not match the pattern. Make sure the entity UUID matches the validation pattern.`)
         }
     })
 
@@ -109,7 +109,7 @@ describe("Uuid validation tests", () => {
                 }
             })
         } catch (e) {
-            expect(e.response.data.error.errors[0].message).toBe(`Metadata uuid is undefined but kind ${providerPrefix}/${providerVersion}/${kind_name} has validation pattern set`)
+            expect(e.response.data.error.error_details.message).toBe(`Metadata uuid is undefined but kind: ${ providerPrefix }/${ providerVersion }/${ kind_name } has validation pattern set. Provide a valid metadata uuid.`)
         }
     })
 });

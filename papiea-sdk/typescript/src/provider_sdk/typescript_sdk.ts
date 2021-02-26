@@ -30,7 +30,7 @@ import {
 } from "papiea-core"
 import {getTracer, LoggerFactory} from "papiea-backend-utils"
 import { InvocationError, SecurityApiError } from "./typescript_sdk_exceptions"
-import {validate_error_codes, get_papiea_version, spanSdkOperation} from "./typescript_sdk_utils"
+import { isAxiosError, validate_error_codes, get_papiea_version, spanSdkOperation} from "./typescript_sdk_utils"
 import {Tracer} from "opentracing"
 
 class SecurityApiImpl implements SecurityApi {
@@ -47,7 +47,7 @@ class SecurityApiImpl implements SecurityApi {
             const {data: user_info } = await this.provider.provider_api_axios.get(`${url}/auth/user_info`, {headers: {'Authorization': `Bearer ${this.s2s_key}`}});
             return user_info
         } catch (e) {
-            throw SecurityApiError.fromError(e, `Cannot get user info for provider`)
+            throw SecurityApiError.fromError(e, `Cannot get user info for provider: ${this.provider.prefix}/${this.provider.version}.`)
         }
     }
 
@@ -57,7 +57,7 @@ class SecurityApiImpl implements SecurityApi {
             const {data: keys } = await this.provider.provider_api_axios.get(`${url}/s2skey`, {headers: {'Authorization': `Bearer ${this.s2s_key}`}});
             return keys
         } catch (e) {
-            throw SecurityApiError.fromError(e, `Cannot list s2s keys for provider`)
+            throw SecurityApiError.fromError(e, `Cannot list s2s keys for provider: ${this.provider.prefix}/${this.provider.version}.`)
         }
     }
 
@@ -67,7 +67,7 @@ class SecurityApiImpl implements SecurityApi {
             const {data: s2skey } = await this.provider.provider_api_axios.post(`${url}/s2skey`, new_key, {headers: {'Authorization': `Bearer ${this.s2s_key}`}});
             return s2skey
         } catch (e) {
-            throw SecurityApiError.fromError(e, `Cannot create s2s key for provider`)
+            throw SecurityApiError.fromError(e, `Cannot create s2s key for provider: ${this.provider.prefix}/${this.provider.version}.`)
         }
     }
 
@@ -77,7 +77,7 @@ class SecurityApiImpl implements SecurityApi {
             const {data: r } = await this.provider.provider_api_axios.put(`${url}/s2skey`, {key: key_to_deactivate, active:false}, {headers: {'Authorization': `Bearer ${this.s2s_key}`}});
             return r
         } catch (e) {
-            throw SecurityApiError.fromError(e, `Cannot deactivate s2s key for provider`)
+            throw SecurityApiError.fromError(e, `Cannot deactivate s2s key for provider: ${this.provider.prefix}/${this.provider.version}.`)
         }
     }
 }
@@ -260,11 +260,18 @@ export class ProviderSdk implements ProviderImpl {
                 res.json(result);
                 span.finish()
             } catch (e) {
-                ctx.get_logger().error(JSON.stringify(e?.response?.data) ?? e)
+                ctx.get_logger().error(JSON.stringify(e?.response?.data.error, null, 4) ?? e)
                 if (e instanceof InvocationError) {
                     return res.status(e.status_code).json(e.toResponse())
                 }
-                const error = InvocationError.fromError(500, e);
+                let error: InvocationError
+                if (isAxiosError(e)) {
+                    error = InvocationError.fromError(500, e);
+                } else if (e instanceof SecurityApiError) {
+                    error = InvocationError.fromError(500, e);
+                } else {
+                    error = InvocationError.fromError(500, e, e.message);
+                }
                 res.status(error.status_code).json(error.toResponse())
             }
         });
@@ -483,11 +490,18 @@ export class Kind_Builder {
                 res.json(result);
                 span.finish()
             } catch (e) {
-                ctx.get_logger().error(JSON.stringify(e?.response?.data) ?? e)
+                ctx.get_logger().error(JSON.stringify(e?.response?.data.error, null, 4) ?? e)
                 if (e instanceof InvocationError) {
                     return res.status(e.status_code).json(e.toResponse())
                 }
-                const error = InvocationError.fromError(500, e);
+                let error: InvocationError
+                if (isAxiosError(e)) {
+                    error = InvocationError.fromError(500, e);
+                } else if (e instanceof SecurityApiError) {
+                    error = InvocationError.fromError(500, e);
+                } else {
+                    error = InvocationError.fromError(500, e, e.message);
+                }
                 res.status(error.status_code).json(error.toResponse())
             }
         });
@@ -553,12 +567,19 @@ export class Kind_Builder {
                 res.json(result);
                 span.finish()
             } catch (e) {
-                ctx.get_logger().error(JSON.stringify(e?.response?.data) ?? e)
+                ctx.get_logger().error(JSON.stringify(e?.response?.data.error, null, 4) ?? e)
                 if (e instanceof InvocationError) {
                     return res.status(e.status_code).json(e.toResponse())
                 }
-                const error = InvocationError.fromError(500, e);
-                res.status(500).json(error.toResponse())
+                let error: InvocationError
+                if (isAxiosError(e)) {
+                    error = InvocationError.fromError(500, e);
+                } else if (e instanceof SecurityApiError) {
+                    error = InvocationError.fromError(500, e);
+                } else {
+                    error = InvocationError.fromError(500, e, e.message);
+                }
+                res.status(error.status_code).json(error.toResponse())
             }
         });
         this.server_manager.register_healthcheck()
@@ -592,11 +613,18 @@ export class Kind_Builder {
                 res.json(result);
                 span.finish()
             } catch (e) {
-                ctx.get_logger().error(JSON.stringify(e?.response?.data) ?? e)
+                ctx.get_logger().error(JSON.stringify(e?.response?.data.error, null, 4) ?? e)
                 if (e instanceof InvocationError) {
                     return res.status(e.status_code).json(e.toResponse())
                 }
-                const error = InvocationError.fromError(500, e);
+                let error: InvocationError
+                if (isAxiosError(e)) {
+                    error = InvocationError.fromError(500, e);
+                } else if (e instanceof SecurityApiError) {
+                    error = InvocationError.fromError(500, e);
+                } else {
+                    error = InvocationError.fromError(500, e, e.message);
+                }
                 res.status(error.status_code).json(error.toResponse())
             }
         });

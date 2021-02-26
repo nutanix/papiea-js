@@ -29,7 +29,7 @@ export class S2S_Key_DB_Mongo implements S2S_Key_DB {
                 { name: "uuid", unique: true },
             )
         } catch (err) {
-            throw err
+            throw new PapieaException({ message: "Failed to setup the S2S key database.", cause: err })
         }
     }
 
@@ -46,7 +46,7 @@ export class S2S_Key_DB_Mongo implements S2S_Key_DB {
             "deleted_at": null
         });
         if (result === null) {
-            throw new PapieaException("MongoDBError: Key not found");
+            throw new PapieaException({ message: "MongoDBError: S2S key not found." });
         }
         return result;
     }
@@ -57,7 +57,7 @@ export class S2S_Key_DB_Mongo implements S2S_Key_DB {
             "deleted_at": null
         });
         if (result === null) {
-            throw new PapieaException("MongoDBError: Key not found");
+            throw new PapieaException({ message: "MongoDBError: S2S key not found." });
         }
         return result;
     }
@@ -79,10 +79,10 @@ export class S2S_Key_DB_Mongo implements S2S_Key_DB {
                 }
             });
         if (result.result.n === undefined || result.result.ok !== 1) {
-            throw new PapieaException("MongoDBError: Failed to inactivate key");
+            throw new PapieaException({ message: "MongoDBError: Failed to inactivate S2S key." });
         }
         if (result.result.n !== 1 && result.result.n !== 0) {
-            throw new PapieaException(`MongoDBError: Amount of key inactivated must be 0 or 1, found: ${result.result.n}`);
+            throw new PapieaException({ message: `MongoDBError: Amount of S2S key inactivated must be 0 or 1, found ${result.result.n} keys.` });
         }
         return;
     }

@@ -12,13 +12,13 @@ export function check_request(request_validator_options: RequestValidatorOptions
     return (req: Request, res: Response, next: NextFunction) => {
         for (var req_query_param in req.query) {
             if (!allowed_query_params_set.has(req_query_param)) {
-                throw new BadRequestError(`Request got query parameter: ${req_query_param}, expected params: ${allowed_query_params_set}`);
+                throw new BadRequestError({ message: `Request got query parameter: ${req_query_param}, expected params: ${allowed_query_params_set}.` });
             }
         }
         if (request_validator_options.allowed_body_params && allowed_body_params_set) {
             for (var req_body_param in req.body) {
                 if (!allowed_body_params_set.has(req_body_param)) {
-                    throw new BadRequestError(`Request got body parameter: ${req_body_param}, expected params: ${allowed_query_params_set}`);
+                    throw new BadRequestError({ message: `Request got body parameter: ${req_body_param}, expected params: ${allowed_query_params_set}.` });
                 }
             }
         }

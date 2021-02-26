@@ -9,10 +9,9 @@ from papiea.utils import json_loads_attrs
 
 
 class ApiException(Exception):
-    def __init__(self, status: int, reason: str, details: str):
-        super().__init__(reason)
+    def __init__(self, status: int, details: str):
+        super().__init__(details.error.message)
         self.status = status
-        self.reason = reason
         self.details = details
 
 
@@ -34,19 +33,12 @@ class PapieaBaseException(Exception):
         details = await resp.text()
         try:
             details = json_loads_attrs(details)
-            logger.error(f"Got exception while making request. Status: {resp.status}, Reason: {resp.reason},"
+            logger.error(f"Got exception while making request. Status: {resp.status},"
                          f" Details: {details}")
         except:
-            logger.error(f"Got exception while making request. Status: {resp.status}, Reason: {resp.reason}")
-            raise ApiException(resp.status, resp.reason, details)
-        error = details.get("error")
-        if error:
-            exception = EXCEPTION_MAP.get(error["type"])
-            if exception:
-                logger.info(f"Got exception while making request. Reason: {error.get('errors')[0].get('message')},"
-                            f" Details: {details}")
-                raise exception(error.get("errors")[0].get("message"), resp, details)
-        raise ApiException(resp.status, resp.reason, details)
+            logger.error(f"Got exception while making request. Status: {resp.status}")
+            raise ApiException(resp.status, details)
+        raise ApiException(resp.status, details)
 
 
 class ConflictingEntityException(PapieaBaseException):
@@ -76,6 +68,8 @@ class ValidationException(PapieaBaseException):
 class BadRequestException(PapieaBaseException):
     pass
 
+class OnActionException(PapieaBaseException):
+    pass
 
 class PapieaServerException(PapieaBaseException):
     pass
@@ -86,32 +80,41 @@ class InvocationError(Exception):
             self,
             status_code: int,
             message: str,
-            errors: List[Any],
-            stack: Optional[str] = None,
+            cause
     ):
         super().__init__(message)
         self.status_code = status_code
         self.message = message
-        self.errors = errors
-        self.stack = stack
+        self.name = "invocation_error"
+        self.cause = cause
 
     @staticmethod
-    def from_error(e: Exception):
-        return InvocationError(500, str(e), [])
+    def from_error(e: Exception, message: str = ''):
+        if e.__class__ == ApiException:
+            return InvocationError(e.status, "Procedure Handler Error", e.details.error)
+        if message != '':
+            return InvocationError(500, message, { "message": str(e) })
+        return InvocationError(500, "Procedure Handler Error", e)
 
     def to_response(self) -> dict:
         return {
-            "errors": self.errors,
-            "message": self.message,
-            "stacktrace": self.stack,
+            "error": {
+                "message": self.message,
+                "name": self.name,
+                "status_code": self.status_code,
+                "cause": self.cause
+            }
         }
-
 
 class SecurityApiError(InvocationError):
     @staticmethod
     def from_error(e: Exception, message: str):
-        return SecurityApiError(500, message, [e])
-
+        if e.__class__ == ApiException:
+            error = InvocationError(e.status, "Security API Error: " + message, e.details.error)
+        else:
+            error = SecurityApiError(500, "Security API Error: " + message, e)
+        error.name = "security_api_error"
+        return error
 
 EXCEPTION_MAP = {
     PapieaError.ConflictingEntity.value: ConflictingEntityException,

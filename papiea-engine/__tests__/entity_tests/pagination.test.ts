@@ -127,7 +127,7 @@ describe("Pagination tests", () => {
                 }
             });
         } catch (e) {
-            expect(e.response.data.error.errors[0].message).toBe("Limit should be greater than zero, received: -1");
+            expect(e.response.data.error.error_details.message).toBe("Failed to validate limit value. Limit should be greater than zero, received -1.");
         }
     });
 
@@ -141,7 +141,7 @@ describe("Pagination tests", () => {
                 }
             });
         } catch (e) {
-            expect(e.response.data.error.errors[0].message).toBe("Offset should be greater than or equal to zero, received: -1");
+            expect(e.response.data.error.error_details.message).toBe("Failed to validate offset value. Offset should be greater than or equal to zero, received -1.");
         }
     });
 
@@ -167,7 +167,7 @@ describe("Pagination tests", () => {
                 }
             });
         } catch (e) {
-            expect(e.response.data.error.errors[0].message).toBe("Limit should be greater than zero, received: 0");
+            expect(e.response.data.error.error_details.message).toBe("Failed to validate limit value. Limit should be greater than zero, received 0.");
         }
     });
 

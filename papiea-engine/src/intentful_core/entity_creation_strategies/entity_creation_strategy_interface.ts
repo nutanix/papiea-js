@@ -53,7 +53,7 @@ export abstract class EntityCreationStrategy {
         if (exists) {
             const highest_spec_version = await this.graveyardDb.get_highest_spec_version(metadata)
             metadata.spec_version = spec_version
-            throw new GraveyardConflictingEntityError(metadata, spec, highest_spec_version)
+            throw new GraveyardConflictingEntityError(metadata, highest_spec_version)
         }
     }
 
@@ -69,7 +69,7 @@ export abstract class EntityCreationStrategy {
         } catch (e) {
             // Hiding details of the error for security reasons
             // since it is not supposed to occur under normal circumstances
-            throw new PapieaException(`Entity has invalid uuid for kind ${provider.prefix}/${provider.version}/${kind_name}`, { provider_prefix: provider.prefix, provider_version: provider.version, kind_name: kind_name, additional_info: { "entity_uuid": uuid }})
+            throw new PapieaException({ message: `Entity has invalid uuid for kind: ${provider.prefix}/${provider.version}/${kind_name}.`, entity_info: { provider_prefix: provider.prefix, provider_version: provider.version, kind_name: kind_name, additional_info: { "entity_uuid": uuid }} })
         }
     }
 
@@ -81,13 +81,13 @@ export abstract class EntityCreationStrategy {
             if (this.kind.uuid_validation_pattern === undefined) {
                 request_metadata.uuid = uuid();
             } else {
-                throw new PapieaException(`Metadata uuid is undefined but kind ${request_metadata.provider_prefix}/${request_metadata.provider_version}/${request_metadata.kind} has validation pattern set`, { provider_prefix: request_metadata.provider_prefix, provider_version: request_metadata.provider_version, kind_name: request_metadata.kind, additional_info: { "entity_uuid": request_metadata.uuid, "uuid_validation_pattern": this.kind.uuid_validation_pattern}})
+                throw new PapieaException({ message: `Metadata uuid is undefined but kind: ${request_metadata.provider_prefix}/${request_metadata.provider_version}/${request_metadata.kind} has validation pattern set. Provide a valid metadata uuid.`, entity_info: { provider_prefix: request_metadata.provider_prefix, provider_version: request_metadata.provider_version, kind_name: request_metadata.kind, additional_info: { "entity_uuid": request_metadata.uuid, "uuid_validation_pattern": this.kind.uuid_validation_pattern}}})
             }
         } else {
             const result = await this.get_existing_entities(this.provider, request_metadata.uuid, request_metadata.kind)
             if (result.length !== 0) {
-                const [metadata, spec, status] = result
-                throw new ConflictingEntityError(`Entity already exists`, metadata, spec, status)
+                const [metadata, ,] = result
+                throw new ConflictingEntityError(`Entity with UUID ${metadata.uuid} of kind: ${metadata.provider_prefix}/${metadata.provider_version}/${metadata.kind} already exists.`, metadata)
             }
         }
         if (request_metadata.spec_version === undefined || request_metadata.spec_version === null) {
@@ -106,7 +106,7 @@ export abstract class EntityCreationStrategy {
     protected validate_entity(entity: Entity) {
         this.validator.validate_metadata_extension(this.provider.extension_structure, entity.metadata, this.provider.allowExtraProps);
         this.validator.validate_spec(this.provider, entity.spec, this.kind, this.provider.allowExtraProps)
-        this.validator.validate_uuid(this.kind, entity.metadata.uuid)
+        this.validator.validate_uuid(this.provider.prefix, this.provider.version, this.kind, entity.metadata.uuid)
         this.validator.validate_status(this.provider, entity.metadata, entity.status)
     }
 

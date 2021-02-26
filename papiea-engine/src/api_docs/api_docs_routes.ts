@@ -37,7 +37,7 @@ export default function createAPIDocsRouter(urlPrefix: string, apiDocsGenerator:
     apiDocsRouter.get('/:provider/:version', asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
         const provider: Provider = await providerDb.get_provider(req.params.provider, req.params.version);
         const apiDocJson: any = await apiDocsGenerator.getApiDocs(provider);
-        res.send(JSON.stringify(apiDocJson));
+        res.send(JSON.stringify(apiDocJson, null, 4));
     }));
 
     apiDocsRouter.get('/', asyncHandler(async (req: Request, res: Response, next: NextFunction) => {

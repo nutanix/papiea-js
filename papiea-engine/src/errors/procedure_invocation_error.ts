@@ -1,49 +1,41 @@
 import { ValidationError } from "./validation_error"
 import { AxiosError } from "axios"
-import { isAxiosError } from "../utils/utils"
-import { PapieaException, PapieaExceptionContextImpl } from "./papiea_exception";
-import { PapieaExceptionContext} from "papiea-core"
+import { isAxiosError, convertAxiosErrorToEngineError } from "../utils/utils"
+import { PapieaException } from "./papiea_exception";
+import { PapieaExceptionContext, PapieaErrorDetails, PapieaError} from "papiea-core"
 
 export class ProcedureInvocationError extends PapieaException {
-    errors: { [key: string]: any }[];
-    status: number;
+    status: number
 
-    protected constructor(errors: { [key: string]: any }[], status: number, context: PapieaExceptionContext = {}) {
-        const messages = errors.map(x => x.message);
-        super(JSON.stringify(messages), context);
+    constructor(error: PapieaErrorDetails, status: number) {
+        super(error);
+        this.status = status
+        this.name = PapieaError.ProcedureInvocation
         Object.setPrototypeOf(this, ProcedureInvocationError.prototype);
-        this.errors = errors;
-        this.status = status;
-        this.name = "ProcedureInvocationError";
     }
 
     static fromError(err: AxiosError, context?: PapieaExceptionContext, status?: number): ProcedureInvocationError
     static fromError(err: ValidationError, context?: PapieaExceptionContext, status?: number): ProcedureInvocationError
     static fromError(err: Error, context?: PapieaExceptionContext, status?: number): ProcedureInvocationError {
         if (isAxiosError(err)) {
-            return new ProcedureInvocationError([{
-                message: err.response?.data.message,
-                errors: err.response?.data.errors,
-                stacktrace: err.response?.data.stacktrace
-            }], err.response?.status ?? 500, context!)
+            return new ProcedureInvocationError({
+                message: "Failed to execute the procedure",
+                entity_info: context!,
+                cause: convertAxiosErrorToEngineError(err.response?.data.error)
+            }, err.response?.status ?? 500)
         } else if (err instanceof ValidationError) {
-            return new ProcedureInvocationError(
-                err.errors.map(e => ({
-                    message: e,
-                    errors: {},
-                    stacktrace: err.stack
-                }))
-            , status || 500, context!)
+            return new ProcedureInvocationError({
+                message: "Validation failed for procedure input/output",
+                entity_info: context!,
+                cause: err
+            }, status || 500)
         } else {
-            return new ProcedureInvocationError([{
+            return new ProcedureInvocationError({
                 message: "Unknown error during procedure invocation",
-                errors: {},
-                stacktrace: err.stack
-            }], status || 500, context!)
+                entity_info: context!,
+                cause: err
+            }, status || 500)
         }
     }
 
-    toErrors(): { [key: string]: any }[] {
-        return this.errors;
-    }
 }

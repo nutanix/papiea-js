@@ -36,7 +36,7 @@ export class Watchlist_Db_Mongo implements Watchlist_DB {
             upsert: true
         });
         if (result.result.n !== 1) {
-            throw new PapieaException(`MongoDBError: Amount of updated entries doesn't equal to 1: ${result.result.n}`)
+            throw new PapieaException({ message: `MongoDBError: Amount of updated watchlist entries should equal to 1, found ${result.result.n} entries.`})
         }
     }
 

@@ -10,7 +10,8 @@ import {
     Provider,
     Spec,
     Status,
-    SwaggerModelValidatorErrorMessage
+    SwaggerModelValidatorErrorMessage,
+    PapieaError
 } from "papiea-core"
 import { SFSCompiler } from "../intentful_core/sfs_compiler"
 import * as uuid_validate from "uuid-validate"
@@ -42,7 +43,7 @@ function modelIsNullable(model: any) {
 
 function convertValidatorMessagesToPapieaMessages(
     provider_prefix: string, provider_version: string, kind_name: string,
-    errors: Error[], data: any, model: any) {
+    errors: Error[], data: any, model: any, translated_error_messages: string[]) {
     let fieldName: string
     let message: string
     for (let i = 0;i < errors.length;i++) {
@@ -50,54 +51,55 @@ function convertValidatorMessagesToPapieaMessages(
         if (message.includes(SwaggerModelValidatorErrorMessage.undefined_value_str)) {
             fieldName = message.replace(SwaggerModelValidatorErrorMessage.undefined_value_str, "");
             if (fieldName === 'rootModel') {
-                message = `Received procedure input is null/undefined, provide input value for kind ${provider_prefix}/${provider_version}/${kind_name}`
+                message = `Received procedure input is null/undefined, provide input value for kind: ${provider_prefix}/${provider_version}/${kind_name}.`
             } else {
-                message = `Received procedure input has null/undefined value for field: ${fieldName}, provide field value for kind ${provider_prefix}/${provider_version}/${kind_name}`
+                message = `Received procedure input has null/undefined value for field: ${fieldName}, provide field value for kind: ${provider_prefix}/${provider_version}/${kind_name}.`
             }
         } else if (message.includes(SwaggerModelValidatorErrorMessage.empty_value_str)) {
             fieldName = message.replace(SwaggerModelValidatorErrorMessage.empty_value_str, "");
             if (fieldName === 'rootModel') {
-                message = `Received procedure input value is empty, required non-empty input value for kind ${provider_prefix}/${provider_version}/${kind_name}`
+                message = `Received procedure input value is empty, required non-empty input value for kind: ${provider_prefix}/${provider_version}/${kind_name}.`
             } else {
-                message = `Received procedure input has empty value for field: ${fieldName}, required non-empty value for kind ${provider_prefix}/${provider_version}/${kind_name}`
+                message = `Received procedure input has empty value for field: ${fieldName}, required non-empty value for kind: ${provider_prefix}/${provider_version}/${kind_name}.`
             }
         } else if (message.includes(SwaggerModelValidatorErrorMessage.undefined_model_str)) {
-            message = `Schema for the input is null/undefined, required valid schema for kind ${provider_prefix}/${provider_version}/${kind_name}`
+            message = `Schema for the input is null/undefined, required valid schema for kind: ${provider_prefix}/${provider_version}/${kind_name}.`
         } else if (message.includes(SwaggerModelValidatorErrorMessage.type_mismatch_str)) {
             message = message.replace(SwaggerModelValidatorErrorMessage.type_mismatch_str, "")
             const inputType = message.slice(0, message.indexOf(','))
             const targetType = message.replace(inputType + ", expected: ", "")
-            message = `Received procedure input field has type: ${inputType}, schema expected type: ${targetType} for kind ${provider_prefix}/${provider_version}/${kind_name}\nInput:\n${JSON.stringify(data)}\nSchema:\n${JSON.stringify(model)}`
+            message = `Received procedure input field has type: ${inputType}, schema expected type: ${targetType} for kind: ${provider_prefix}/${provider_version}/${kind_name}.`
         } else if (message.includes(SwaggerModelValidatorErrorMessage.additional_input_field_str)) {
             message = message.replace(SwaggerModelValidatorErrorMessage.additional_input_field_str, "");
             fieldName = message.replace("' is not in the model", "")
-            message = `Received procedure input has additional field: '${fieldName}' not present in the schema for kind ${provider_prefix}/${provider_version}/${kind_name}\nInput:\n${JSON.stringify(data)}\nSchema:\n${JSON.stringify(model)}`
+            message = `Received procedure input has additional field: '${fieldName}' not present in the schema for kind: ${provider_prefix}/${provider_version}/${kind_name}.`
         } else if (message.includes(SwaggerModelValidatorErrorMessage.non_string_type_field_str)) {
             message = message.replace(SwaggerModelValidatorErrorMessage.non_string_type_field_str, "")
             fieldName = message.replace(") has a non string 'type' field", "")
-            message = `Schema field: ${fieldName} has type set to a non-string value for kind ${provider_prefix}/${provider_version}/${kind_name}\nSchema:\n${JSON.stringify(model)}`
+            message = `Schema field: ${fieldName} has type set to a non-string value for kind: ${provider_prefix}/${provider_version}/${kind_name}.`
         } else if (message.includes(SwaggerModelValidatorErrorMessage.not_object_type_str)) {
             fieldName = message.slice(0, message.indexOf(SwaggerModelValidatorErrorMessage.not_object_type_str))
             const fieldType = message.replace(fieldName + SwaggerModelValidatorErrorMessage.not_object_type_str, "")
-            message = `Received procedure input field: ${fieldName} has type: ${fieldType}, schema expected type object for kind ${provider_prefix}/${provider_version}/${kind_name}\nInput:\n${JSON.stringify(data)}\nSchema:\n${JSON.stringify(model)}`
+            message = `Received procedure input field: ${fieldName} has type: ${fieldType}, schema expected type object for kind: ${provider_prefix}/${provider_version}/${kind_name}.`
         } else if (message.includes(SwaggerModelValidatorErrorMessage.not_array_type_str)) {
             fieldName = message.slice(0, message.indexOf(SwaggerModelValidatorErrorMessage.not_array_type_str))
-            message = `Schema expected input field: ${fieldName} to be an array for kind ${provider_prefix}/${provider_version}/${kind_name}\nInput:\n${JSON.stringify(data)}\nSchema:\n${JSON.stringify(model)}`
+            message = `Schema expected input field: ${fieldName} to be an array for kind: ${provider_prefix}/${provider_version}/${kind_name}.`
         } else if (message.includes(SwaggerModelValidatorErrorMessage.required_field_no_value_str)) {
             fieldName = message.slice(0, message.indexOf(SwaggerModelValidatorErrorMessage.required_field_no_value_str))
-            message = `Received procedure input is missing required field: ${fieldName} for kind ${provider_prefix}/${provider_version}/${kind_name}\nInput:\n${JSON.stringify(data)}\nSchema:\n${JSON.stringify(model)}`
+            message = `Received procedure input is missing required field: ${fieldName} for kind: ${provider_prefix}/${provider_version}/${kind_name}.`
         } else if (message.includes(SwaggerModelValidatorErrorMessage.required_field_missing_schema_str)) {
             fieldName = message.replace(SwaggerModelValidatorErrorMessage.required_field_missing_schema_str, "")
-            message = `Missing/invalid schema definition for required field: ${fieldName} for kind ${provider_prefix}/${provider_version}/${kind_name}\nInput:\n${JSON.stringify(data)}\nSchema:\n${JSON.stringify(model)}`
+            message = `Missing/invalid schema definition for required field: ${fieldName} for kind: ${provider_prefix}/${provider_version}/${kind_name}.`
         }
-        errors[i].message = message
+        translated_error_messages.push(message)
     }
+    translated_error_messages.push(`Input:\n${JSON.stringify(data)}\nSchema:\n${JSON.stringify(model)}`)
 }
 
 const SwaggerModelValidator = require('swagger-model-validator');
 
 export interface Validator {
-    validate_uuid(kind: Kind, uuid: string): void
+    validate_uuid(provider_prefix: string, provider_version: string, kind: Kind, uuid: string): void
     validate_metadata_extension(extension_structure: Data_Description, metadata: Metadata | undefined, allowExtraProps: boolean): void
     validate_spec(provider: Provider, spec: Spec, kind: Kind, allowExtraProps: boolean): void
     validate_sfs(provider: Provider): void
@@ -118,16 +120,16 @@ export class ValidatorImpl {
         return new ValidatorImpl(procedural_signature_schema, provider_schema)
     }
 
-    public validate_uuid(kind: Kind, uuid: string) {
+    public validate_uuid(provider_prefix: string, provider_version: string, kind: Kind, uuid: string) {
         const validation_pattern = kind.uuid_validation_pattern
         if (validation_pattern === undefined) {
             if (!uuid_validate(uuid)) {
-                throw new PapieaException(`Invalid entity UUID`, { kind_name: kind.name, additional_info: { "entity_uuid": uuid }})
+                throw new PapieaException({ message: `Invalid entity UUID for kind: ${provider_prefix}/${provider_version}/${kind.name}. Make sure the entity has valid UUID.`, entity_info: { provider_prefix, provider_version, kind_name: kind.name, additional_info: { "entity_uuid": uuid }}})
             }
         } else {
             const regex = new RegExp(validation_pattern, 'g')
             if (!regex.test(uuid)) {
-                throw new PapieaException(`Entity UUID does not match the pattern`, { kind_name: kind.name, additional_info: { "entity_uuid": uuid, "uuid_validation_pattern": validation_pattern }})
+                throw new PapieaException({ message: `Entity UUID for kind: ${provider_prefix}/${provider_version}/${kind.name} does not match the pattern. Make sure the entity UUID matches the validation pattern.`, entity_info: { provider_prefix, provider_version, kind_name: kind.name, additional_info: { "entity_uuid": uuid }}})
             }
         }
     }
@@ -140,10 +142,10 @@ export class ValidatorImpl {
             return
         }
         if (metadata.extension !== undefined && metadata.extension !== null && typeof metadata.extension !== "object") {
-            throw new ValidationError([{"name": "Error", message: `Metadata extension should be an object for entity of kind ${metadata.provider_prefix}/${metadata.provider_version}/${metadata.kind}`}], { provider_prefix: metadata.provider_prefix, provider_version: metadata.provider_version, kind_name: metadata.kind, additional_info: { "entity_uuid": uuid.toString(), "metadata_extension": JSON.stringify(metadata.extension) }})
+            throw new ValidationError({ message: `Failed to validate metadata extension for kind: ${metadata.provider_prefix}/${metadata.provider_version}/${metadata.kind}. Metadata extension should be an object.`, entity_info: { provider_prefix: metadata.provider_prefix, provider_version: metadata.provider_version, kind_name: metadata.kind, additional_info: { "entity_uuid": uuid.toString(), "metadata_extension": JSON.stringify(metadata.extension) }}})
         }
         if (metadata.extension === undefined || metadata.extension === null || isEmpty(metadata.extension)) {
-            throw new ValidationError([{"name": "Error", message: `Metadata extension is not specified for entity of kind ${metadata.provider_prefix}/${metadata.provider_version}/${metadata.kind}`}], { provider_prefix: metadata.provider_prefix, provider_version: metadata.provider_version, kind_name: metadata.kind, additional_info: { "entity_uuid": metadata.uuid } })
+            throw new ValidationError({ message: `Failed to validate metadata extension for kind: ${metadata.provider_prefix}/${metadata.provider_version}/${metadata.kind}. Make sure the metadata extension is defined.`, entity_info: { provider_prefix: metadata.provider_prefix, provider_version: metadata.provider_version, kind_name: metadata.kind, additional_info: { "entity_uuid": metadata.uuid }}})
         }
         const schemas: any = Object.assign({}, extension_structure);
         this.validate(metadata.provider_prefix, metadata.provider_version, metadata.kind, metadata.extension, Object.values(extension_structure)[0], schemas,
@@ -174,12 +176,12 @@ export class ValidatorImpl {
 
     public async validate_status(provider: Provider, entity_ref: Entity_Reference, status: Status) {
         if (status === undefined || isEmpty(status)) {
-            throw new ValidationError([new Error(`Status body has undefined value for one/more fields which is not supported in papiea, use null value instead to remove the field from status for kind ${provider.prefix}/${provider.version}/${entity_ref.kind}`)], { provider_prefix: provider.prefix, provider_version: provider.version, kind_name: entity_ref.kind, additional_info: { "entity_uuid": entity_ref.uuid }})
+            throw new ValidationError({ message: `Failed to validate status for kind: ${provider.prefix}/${provider.version}/${entity_ref.kind}. Use null values instead of undefined to remove the status field.`, entity_info: { provider_prefix: provider.prefix, provider_version: provider.version, kind_name: entity_ref.kind, additional_info: { "entity_uuid": entity_ref.uuid }}})
         }
         const kind = provider.kinds.find((kind: Kind) => kind.name === entity_ref.kind);
         const allowExtraProps = provider.allowExtraProps;
         if (kind === undefined) {
-            throw new PapieaException(`Unable to find kind ${provider.prefix}/${provider.version}/${entity_ref.kind} in provider`, { provider_prefix: provider.prefix, provider_version: provider.version, kind_name: entity_ref.kind, additional_info: { "entity_uuid": entity_ref.uuid }});
+            throw new PapieaException({ message: `Unable to find kind: ${provider.prefix}/${provider.version}/${entity_ref.kind} in provider. Make sure the name is correct & kind is registered.`, entity_info: { provider_prefix: provider.prefix, provider_version: provider.version, kind_name: entity_ref.kind, additional_info: { "entity_uuid": entity_ref.uuid }}});
         }
         const schemas: any = Object.assign({}, kind.kind_structure);
         this.validate(provider.prefix, provider.version, kind.name, status, Object.values(kind.kind_structure)[0], schemas,
@@ -256,14 +258,13 @@ export class ValidatorImpl {
                     if (!possible_values.includes(value)) {
                         let message = `${field_name} has wrong value: ${value}, `
                         if (possible_values.length > 0) {
-                            message += `correct values are: ${possible_values.toString()}`
+                            message += `correct values are: ${possible_values.toString()}.`
                         } else {
-                            message += "the field should not be present"
+                            message += "the field should not be present."
                         }
-                        throw new ValidationError([{
-                            name: "Error",
-                            message: message
-                        }], {provider_prefix: provider_prefix, provider_version: provider_version, kind_name: kind_name})
+                        throw new ValidationError({
+                            message: message,
+                            entity_info: {provider_prefix: provider_prefix, provider_version: provider_version, kind_name: kind_name}})
                     }
                 } else {
                     this.validate_field_value(schema[prop], field_name, possible_values, provider_prefix, provider_version, kind_name)
@@ -292,10 +293,10 @@ export class ValidatorImpl {
                         if (field_schema.hasOwnProperty("required") && field_schema.hasOwnProperty("properties")) {
                             for (let req_field of field_schema["required"]) {
                                 if (field_schema["properties"][req_field].hasOwnProperty("x-papiea") && field_schema["properties"][req_field]["x-papiea"] === "status-only") {
-                                    throw new ValidationError([{
-                                        name: "ValidationError",
-                                        message: `Field: ${req_field} of type 'status-only' is set to be required. Required fields cannot be 'status-only' for kind ${provider_prefix}/${provider_version}/${kind_name}`
-                                    }], { provider_prefix: provider_prefix, provider_version: provider_version, kind_name: kind_name})
+                                    throw new ValidationError({
+                                        message: `Field: ${req_field} of type 'status-only' is set to be required. Required fields cannot be 'status-only' for kind: ${provider_prefix}/${provider_version}/${kind_name}.`,
+                                        entity_info: { provider_prefix: provider_prefix, provider_version: provider_version, kind_name: kind_name}
+                                    })
                                 }
                             }
                         }
@@ -306,10 +307,10 @@ export class ValidatorImpl {
                             if (field_schema["items"]["type"].includes("object") && field_schema["items"].hasOwnProperty("required") && field_schema["items"].hasOwnProperty("properties")) {
                                 for (let req_field of field_schema["items"]["required"]) {
                                     if (field_schema["items"]["properties"][req_field].hasOwnProperty("x-papiea") && field_schema["items"]["properties"][req_field]["x-papiea"] === "status-only") {
-                                        throw new ValidationError([{
-                                            name: "ValidationError",
-                                            message: `Field: ${req_field} of type 'status-only' is set to be required. Required fields cannot be 'status-only' for kind ${provider_prefix}/${provider_version}/${kind_name}`
-                                        }], { provider_prefix: provider_prefix, provider_version: provider_version, kind_name: kind_name})
+                                        throw new ValidationError({
+                                            message: `Field: ${req_field} of type 'status-only' is set to be required. Required fields cannot be 'status-only' for kind: ${provider_prefix}/${provider_version}/${kind_name}.`,
+                                            entity_info: { provider_prefix: provider_prefix, provider_version: provider_version, kind_name: kind_name}
+                                        })
                                     }
                                 }
                                 this.validate_status_only_field(field_schema["items"]["properties"], provider_prefix, provider_version, kind_name)
@@ -333,12 +334,12 @@ export class ValidatorImpl {
             if (isEmpty(data)) {
                 return {valid: true}
             } else {
-                throw new ValidationError([{
-                    name: "Error",
+                throw new ValidationError({
                     message: procedureName !== undefined
-                        ? `Procedure was expecting empty object, received non-empty object for kind ${provider_prefix}/${provider_version}/${kind_name}`
-                        : `Schema was expecting empty object, received non-empty object for kind ${provider_prefix}/${provider_version}/${kind_name}`
-                }], { provider_prefix: provider_prefix, provider_version: provider_version, kind_name: kind_name, additional_info: { "procedure_name": procedureName ?? '', "schema_name": schemaName, "received_input": JSON.stringify(data) }})
+                        ? `Procedure was expecting empty object, received non-empty object for kind: ${provider_prefix}/${provider_version}/${kind_name}.`
+                        : `Schema was expecting empty object, received non-empty object for kind: ${provider_prefix}/${provider_version}/${kind_name}.`,
+                    entity_info: { provider_prefix: provider_prefix, provider_version: provider_version, kind_name: kind_name, additional_info: { "procedure_name": procedureName ?? '', "schema_name": schemaName, "received_input": JSON.stringify(data) }}
+                })
             }
         }
         if (model !== undefined && model !== null) {
@@ -348,29 +349,34 @@ export class ValidatorImpl {
                     return {valid: true}
                 } else {
                     // Model has required fields expecting non-empty input
-                    throw new ValidationError([{
-                        name: "Error",
+                    throw new ValidationError({
                         message: procedureName !== undefined
-                            ? `Procedure was expecting non-empty object, received null/empty object for kind ${provider_prefix}/${provider_version}/${kind_name}`
-                            : `Schema was expecting non-empty object, received null/empty object for kind ${provider_prefix}/${provider_version}/${kind_name}`
-                    }], { provider_prefix: provider_prefix, provider_version: provider_version, kind_name: kind_name, additional_info: { "procedure_name": procedureName ?? '', "schema_name": schemaName, "received_input": JSON.stringify(data) }})
+                            ? `Procedure was expecting non-empty object, received null/empty object for kind: ${provider_prefix}/${provider_version}/${kind_name}.`
+                            : `Schema was expecting non-empty object, received null/empty object for kind: ${provider_prefix}/${provider_version}/${kind_name}.`,
+                        entity_info: { provider_prefix: provider_prefix, provider_version: provider_version, kind_name: kind_name, additional_info: { "procedure_name": procedureName ?? '', "schema_name": schemaName, "received_input": JSON.stringify(data) }}
+                    })
                 }
             }
 
             const res = this.validator.validate(data, model, models, allowBlankTarget, validatorDenyExtraProps);
             if (!res.valid) {
-                convertValidatorMessagesToPapieaMessages(provider_prefix, provider_version, kind_name, res.errors, data, model)
-                throw new ValidationError(res.errors, { provider_prefix: provider_prefix, provider_version: provider_version, kind_name: kind_name, additional_info: { "procedure_name": procedureName ?? '' }});
+                let translated_error_messages: string[] = []
+                convertValidatorMessagesToPapieaMessages(provider_prefix, provider_version, kind_name, res.errors, data, model, translated_error_messages)
+                throw new ValidationError({
+                    message: `Swagger validator failed to validate object for provider: ${provider_prefix}/${provider_version}.`,
+                    entity_info: { provider_prefix: provider_prefix, provider_version: provider_version, kind_name: kind_name, additional_info: { "procedure_name": procedureName ?? '' }},
+                    cause: new PapieaException({ message: translated_error_messages.join('\n') })
+                });
             }
             return res
         } else {
             if (data !== undefined && data !== null && data !== "" && !(Object.entries(data).length === 0 && data.constructor === Object)) {
-                throw new ValidationError([{
-                    name: "Error",
+                throw new ValidationError({
                     message: procedureName !== undefined
-                        ? `Procedure was expecting type void, received non-empty object for kind ${provider_prefix}/${provider_version}/${kind_name}`
-                        : `Schema was expecting type void, received non-empty object for kind ${provider_prefix}/${provider_version}/${kind_name}`
-                }], { provider_prefix: provider_prefix, provider_version: provider_version, kind_name: kind_name, additional_info: { "procedure_name": procedureName ?? '', "schema_name": schemaName, "received_input": JSON.stringify(data) }})
+                        ? `Procedure was expecting type void, received non-empty object for kind: ${provider_prefix}/${provider_version}/${kind_name}.`
+                        : `Schema was expecting type void, received non-empty object for kind: ${provider_prefix}/${provider_version}/${kind_name}.`,
+                    entity_info: { provider_prefix: provider_prefix, provider_version: provider_version, kind_name: kind_name, additional_info: { "procedure_name": procedureName ?? '', "schema_name": schemaName, "received_input": JSON.stringify(data) }}
+                })
             }
         }
     }

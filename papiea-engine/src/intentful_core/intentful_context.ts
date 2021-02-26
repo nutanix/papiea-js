@@ -57,7 +57,7 @@ export class IntentfulContext {
     getIntentfulStrategy(provider: Provider, kind: Kind, user: UserAuthInfo): IntentfulStrategy {
         const strategy = this.behaviourStrategyMap.get(kind.intentful_behaviour)
         if (strategy === undefined) {
-            throw new PapieaException(`Strategy associated with the intentful behaviour not found for kind ${provider.prefix}/${provider.version}/${kind.name}`, { provider_prefix: provider.prefix, provider_version: provider.version, kind_name: kind.name, additional_info: { "intentful_behavior": kind.intentful_behaviour }})
+            throw new PapieaException({ message: `Strategy associated with the intentful behaviour not found for kind: ${provider.prefix}/${provider.version}/${kind.name}. Make sure kind has correct value for intentful_behavior.`, entity_info: { provider_prefix: provider.prefix, provider_version: provider.version, kind_name: kind.name, additional_info: { "intentful_behavior": kind.intentful_behaviour }}})
         }
         strategy.setKind(kind)
         strategy.setUser(user)
@@ -72,7 +72,7 @@ export class IntentfulContext {
     getStatusUpdateStrategy(provider: Provider, kind: Kind, user: UserAuthInfo): StatusUpdateStrategy {
         const strategy = this.statusUpdateStrategyMap.get(kind.kind_structure[kind.name]['x-papiea-entity'])
         if (strategy === undefined) {
-           throw new PapieaException(`Strategy associated with the intentful behaviour not found for kind ${provider.prefix}/${provider.version}/${kind.name}`, { provider_prefix: provider.prefix, provider_version: provider.version, kind_name: kind.name, additional_info: { "intentful_behavior": kind.intentful_behaviour }})
+           throw new PapieaException({ message: `Strategy associated with the intentful behaviour not found for kind: ${provider.prefix}/${provider.version}/${kind.name}. Make sure the kind is registered with valid x-papiea-entity field.`, entity_info: { provider_prefix: provider.prefix, provider_version: provider.version, kind_name: kind.name, additional_info: { "intentful_behavior": kind.intentful_behaviour }}})
         }
         strategy.setKind(kind)
         strategy.setUser(user)

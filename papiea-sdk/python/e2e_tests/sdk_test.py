@@ -131,7 +131,7 @@ class TestEntityOperations:
                 await bucket_entity_client.invoke_procedure("create_object", bucket1_entity.metadata, { "object_name": object1_name })
         except Exception as ex:
             papiea_test.logger.debug("Failed to perform entity operation : " + str(ex))
-            assert str(ex) == "Object already exists in the bucket"
+            assert "Object already exists in the bucket" in ex.details.error.error_details.message
         finally:
             await test_utils.cleanup()
             await sdk.server.close()
@@ -340,7 +340,7 @@ class TestEntityOperations:
                 await bucket_entity_client.invoke_procedure("link_object", bucket1_entity.metadata, object_input)
         except Exception as ex:
             papiea_test.logger.debug("Failed to perform entity operation : " + str(ex))
-            assert str(ex) == "Object already exists in the bucket"
+            assert "Object already exists in the bucket" in ex.details.error.error_details.message
         finally:
             await test_utils.cleanup()
             await sdk.server.close()
@@ -403,7 +403,7 @@ class TestEntityOperations:
                 await bucket_entity_client.invoke_procedure("link_object", bucket2_entity.metadata, object_input)
         except Exception as ex:
             papiea_test.logger.debug("Failed to perform entity operation : " + str(ex))
-            assert str(ex) == "Object already exists in the bucket"
+            assert "Object already exists in the bucket" in ex.details.error.error_details.message
         finally:
             await test_utils.cleanup()
             await sdk.server.close()
@@ -437,7 +437,7 @@ class TestEntityOperations:
                 await bucket_entity_client.invoke_procedure("link_object", bucket1_entity.metadata, object_input)
         except Exception as ex:
             papiea_test.logger.debug("Failed to perform entity operation : " + str(ex))
-            assert str(ex) == "Entity shouldfailuuid not found"
+            assert "Entity with UUID shouldfailuuid of kind: object not found. Make sure the entity and kind is correct." in ex.details.error.error_details.message
         finally:
             await test_utils.cleanup()
             await sdk.server.close()
@@ -565,7 +565,7 @@ class TestEntityOperations:
                 await bucket_entity_client.invoke_procedure("unlink_object", bucket1_entity.metadata, { "object_name": object1_name })
         except Exception as ex:
             papiea_test.logger.debug("Failed to perform entity operation : " + str(ex))
-            assert str(ex) == "Object not found in the bucket"
+            assert "Object not found in the bucket" in ex.details.error.error_details.message
         finally:
             await test_utils.cleanup()
             await sdk.server.close()

@@ -1,16 +1,12 @@
 import { PapieaException } from "./papiea_exception";
-import { PapieaExceptionContext } from "papiea-core"
+import { PapieaErrorDetails, PapieaError } from "papiea-core"
 
 export class BadRequestError extends PapieaException {
-    message: string;
 
-    constructor(message: string, context: PapieaExceptionContext = {}) {
-        super("Bad Request", context);
-        this.message = message;
+    constructor(error: PapieaErrorDetails) {
+        super(error);
+        this.name = PapieaError.BadRequest
         Object.setPrototypeOf(this, BadRequestError.prototype);
     }
 
-    toErrors(): { [key: string]: any }[] {
-        return [{ message: this.message }]
-    }
 }
