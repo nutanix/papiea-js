@@ -275,8 +275,8 @@ export class ProviderSdk implements ProviderImpl {
         return this
     }
 
-    background_task(name: string, delay_sec: number, callback: () => Promise<any>, schema?: any): BackgroundTaskBuilder {
-        return BackgroundTaskBuilder.create_task(this, name, delay_sec, callback, this._tracer, schema)
+    background_task(name: string, delay_sec: number, callback: () => Promise<any>, provider_fields_schema?: any): BackgroundTaskBuilder {
+        return BackgroundTaskBuilder.create_task(this, name, delay_sec, callback, this._tracer, provider_fields_schema)
     }
 
     async register(): Promise<void> {
@@ -468,18 +468,20 @@ export class BackgroundTaskBuilder {
         this.kind_client = kind_client(provider.papiea_url, provider.get_prefix(), name, provider.get_version(), provider.s2s_key)
     }
 
-    static create_task(provider: ProviderSdk, name: string, delay_sec: number, callback: (entity?: Entity) => Promise<any>, tracer: Tracer, schema?: any): BackgroundTaskBuilder {
-        const kind = provider.new_kind(schema ? this.modify_task_schema({[name]: schema}) : {
-            [name]: {
-                type: "object",
-                "x-papiea-entity": "differ",
-                properties: {
-                    state: {
-                        type: "string"
-                    }
+    static create_task(provider: ProviderSdk, name: string, delay_sec: number, callback: (entity?: Entity) => Promise<any>, tracer: Tracer, custom_schema?: any): BackgroundTaskBuilder {
+        const schema: any = {
+            type: "object",
+            "x-papiea-entity": "differ",
+            properties: {
+                state: {
+                    type: "string"
                 }
             }
-        })
+        }
+        if (custom_schema) {
+            schema["properties"]["provider_fields"] = this.modify_task_schema(custom_schema)
+        }
+        const kind = provider.new_kind({[name]: schema})
         kind.on("state", async (ctx, entity, input) => {
             await callback(entity)
             return {
@@ -557,9 +559,7 @@ export class BackgroundTaskBuilder {
                     ) {
                         this.modify_task_schema(nested_prop["properties"])
                     }
-                    if (prop !== "state") {
-                        nested_prop["x-papiea"] = "status-only"
-                    }
+                    nested_prop["x-papiea"] = "status-only"
                 }
             }
         }
@@ -573,7 +573,7 @@ export class BackgroundTaskBuilder {
             await this.update_task_entity()
             await this.provider.provider_api_axios.patch(`${this.provider.provider_url}/${this.provider.get_prefix()}/${this.provider.get_version()}/update_status`,{
                 entity_ref: this.task_entity,
-                status: {state: this.task_entity.status.state, ...status}
+                status: {provider_fields: status}
             });
         }
     }
