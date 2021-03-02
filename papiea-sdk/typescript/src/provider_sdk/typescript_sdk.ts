@@ -275,7 +275,7 @@ export class ProviderSdk implements ProviderImpl {
         return this
     }
 
-    background_task(name: string, delay_sec: number, callback: () => Promise<any>, provider_fields_schema?: any): BackgroundTaskBuilder {
+    background_task(name: string, delay_sec: number, callback: (entity?: Entity) => Promise<any>, provider_fields_schema?: any): BackgroundTaskBuilder {
         return BackgroundTaskBuilder.create_task(this, name, delay_sec, callback, this._tracer, provider_fields_schema)
     }
 
@@ -479,7 +479,8 @@ export class BackgroundTaskBuilder {
             }
         }
         if (custom_schema) {
-            schema["properties"]["provider_fields"] = this.modify_task_schema(custom_schema)
+            this.modify_task_schema(custom_schema)
+            schema["properties"]["provider_fields"] = custom_schema
         }
         const kind = provider.new_kind({[name]: schema})
         kind.on("state", async (ctx, entity, input) => {

@@ -374,7 +374,6 @@ describe("Intentful Workflow tests single provider", () => {
             sdk.version(provider_version);
             sdk.prefix(first_provider_prefix);
             const task = sdk.background_task("sample-task", 5, async () => {
-                console.log("Here")
                 times_invoked++
             })
             try {
