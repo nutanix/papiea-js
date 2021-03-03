@@ -198,6 +198,27 @@ For now this clojurescript library is embedded, but it may end up in a different
     Use `.ssh/config` to name that host), then select `node` as the running environment and you should have a repl.
     Debugging is not yet working in cljs, but I simply use regular clojure if I need to live debug for now.
 
+## Python instructions
+
+For now you can use either:
+
+1. Commit hash to download Python papiea-sdk 
+
+2. Nutanix JFrog artifactory
+
+To use Python SDK from commit hash do:
+
+1. Add this line to your requirements.txt
+`-e git+https://github.com/nutanix/papiea.git@<commit-hash>#egg=papiea-sdk&subdirectory=papiea-sdk/python`
+
+To use Python SDK from Nutanix JFrog artifactory following steps are required:
+
+1. Do `pip install -r requirements.txt`  (Add aiohttp>=3.6.2 and jaeger-client>=4.4.0 if not present)
+
+2. Manually install papiea-sdk from jfrog local repo `pip install papiea-sdk===0.8.5+1748 -i https://repository-login:repository-password@nutanix.jfrog.io/nutanix/api/pypi/pypi-local/simple`
+
+3. Use papiea-sdk
+
 ## Issuing a bug report
 
 While issuing a bug report please make sure you created an issue https://github.com/nutanix/papiea/issues with the 
