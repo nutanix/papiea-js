@@ -81,7 +81,7 @@ export class IntentResolver {
     private async rediff(entity: Entity): Promise<Diff[]> {
         const provider = await this.providerDb.get_provider(entity.metadata.provider_prefix, entity.metadata.provider_version)
         const kind = this.providerDb.find_kind(provider, entity.metadata.kind)
-        return this.differ.all_diffs(kind, entity.spec, entity.status)
+        return this.differ.all_diffs(kind, entity.spec, entity.status, this.logger)
     }
 
     private async processActiveWatcher(active: IntentWatcher, entity: Entity): Promise<void> {

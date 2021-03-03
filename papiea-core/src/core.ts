@@ -141,14 +141,11 @@ export interface DiffContent {
 export interface Differ {
 
     // Get the next diff from an entity based on the 
-    diffs(kind: Kind, spec: Spec, status: Status): Generator<Diff, any, undefined>;
+    diffs(kind: Kind, spec: Spec, status: Status, logger?: any): Generator<Diff, any, undefined>;
 
     // We could also get the entire list of diffs, ordered by the
     // original dependency tree
-    all_diffs(kind: Kind, spec: Spec, status: Status): Diff[];
-
-    // Removes status-only fields from the entity status using the schema
-    remove_status_only_fields(schema: any, status: Status): Status;
+    all_diffs(kind: Kind, spec: Spec, status: Status, logger?: any): Diff[];
 
     // Get current value by path specified in diff fields
     get_diff_path_value(diff: DiffContent, spec: Spec): any

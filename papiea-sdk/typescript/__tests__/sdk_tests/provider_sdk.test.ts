@@ -1289,6 +1289,58 @@ describe("Provider Sdk tests", () => {
         }
     })
 
+    const NULL_FIELD_UPDATE_SCHEMA = {
+        TestObject: {
+            type: 'object',
+            title: 'testobject',
+            'x-papiea-entity': 'differ',
+            properties: {
+                test: {
+                    type: 'string'
+                }
+            }
+        }
+    }
+
+    test("Diff resolver should not run for field set to null in spec", async () => {
+        expect.assertions(2);
+        const sdk = ProviderSdk.create_provider(papieaUrl, adminKey, server_config.host, server_config.port);
+        try {
+            const test_kind = sdk.new_kind(NULL_FIELD_UPDATE_SCHEMA);
+            sdk.version(provider_version);
+            sdk.prefix("null_field_spec_diff_resolver");
+            let called: boolean = false
+            test_kind.on("test", async (ctx, input) => {
+                console.log("Intent handler should not be invoked!!!")
+                called = true
+            })
+            await sdk.register();
+            const kind_name = sdk.provider.kinds[0].name;
+            const { data: { metadata, spec } } = await axios.post(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/${kind_name}`, {
+                    spec: {
+                        test: 'test-val1'
+                    }
+            }, {
+                headers: {
+                  "Content-Type": "application/json",
+                  "Authorization": `Bearer ${adminKey}`,
+                }
+            });
+
+            const updatedEntity: any = await axios.get(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/${kind_name}/${metadata.uuid}`);
+            await axios.put(`${sdk.entity_url}/${sdk.provider.prefix}/${sdk.provider.version}/${kind_name}/${metadata.uuid}`, {
+                spec: {
+                    test: null
+                },
+                metadata: metadata
+            });
+            expect(updatedEntity.data.spec.test).toEqual("test-val1");
+            expect(called).toBeFalsy()
+        } finally {
+            sdk.cleanup()
+        }
+    });
+
     test("Provider with required status-only field should fail in registration", async () => {
         expect.assertions(1)
         const sdk = ProviderSdk.create_provider(papieaUrl, adminKey, server_config.host, server_config.port);

@@ -21,7 +21,7 @@ describe("SFS Compiler Tests", () => {
             {
                 "a": [{ "id": 1, "a": 2, "d": 3 },
                     { "id": 2, "a": 1, "d": 3 }]
-            })
+            }, null, "test_kind")
         expect(diffFields).toEqual([{
             keys: { id: 1 },
             key: 'a',

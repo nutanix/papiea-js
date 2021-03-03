@@ -47,7 +47,7 @@ describe("Differ tests", () => {
             "a": [{ "id": 1, "a": 2, "d": 3 },
                 { "id": 2, "a": 1, "d": 3 }]
         }
-        const diff_fields = SFSCompiler.run_sfs(SFSCompiler.try_compile_sfs("a.{id}.[a,d]", "test_kind"), spec, status)
+        const diff_fields = SFSCompiler.run_sfs(SFSCompiler.try_compile_sfs("a.{id}.[a,d]", "test_kind"), spec, status, null, "test_kind")
         for (let diff of differ.diffs(locationDifferKind, spec, status)) {
             expect(diff.diff_fields).toEqual(diff_fields)
         }
@@ -96,7 +96,7 @@ describe("Differ tests", () => {
             "x": 15,
             "y": 11
         }
-        const diff_fields = SFSCompiler.run_sfs(SFSCompiler.try_compile_sfs("x", "test_kind"), spec, status)
+        const diff_fields = SFSCompiler.run_sfs(SFSCompiler.try_compile_sfs("x", "test_kind"), spec, status, null, "test_kind")
         for (let diff of differ.diffs(locationDifferKind, spec, status)) {
             expect(diff.diff_fields).toEqual(diff_fields)
         }
@@ -133,5 +133,33 @@ describe("Differ tests", () => {
         }
         let diffs = differ.all_diffs(locationDifferKind, spec, status)
         expect(diffs.length).toEqual(2)
+    })
+
+    test("Differ does not find null value as diff", () => {
+        expect.assertions(1)
+        const differ = new BasicDiffer()
+        const spec = {
+            "x": null,
+            "y": 11
+        }
+        const status = {
+            "y": 11
+        }
+        let diffs = differ.all_diffs(locationDifferKind, spec, status)
+        expect(diffs.length).toEqual(0)
+    })
+
+    test("Differ does not find undefined value as diff", () => {
+        expect.assertions(1)
+        const differ = new BasicDiffer()
+        const spec = {
+            "x": undefined,
+            "y": 11
+        }
+        const status = {
+            "y": 11
+        }
+        let diffs = differ.all_diffs(locationDifferKind, spec, status)
+        expect(diffs.length).toEqual(0)
     })
 })

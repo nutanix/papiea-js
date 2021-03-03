@@ -104,13 +104,9 @@ export class DiffResolver {
             const [, status] = await this.statusDb.get_status({...entry_reference.provider_reference, ...entry_reference.entity_reference})
             const provider = await this.providerDb.get_provider(entry_reference.provider_reference.provider_prefix, entry_reference.provider_reference.provider_version)
             const kind = this.providerDb.find_kind(provider, metadata.kind)
-            let diff_status: any = {}
-            if (status !== undefined) {
-                diff_status = JSON.parse(JSON.stringify(status));
-            }
-            diff_status = this.differ.remove_status_only_fields(kind.kind_structure[kind.name], diff_status);
+
             return {
-                diffs: this.differ.all_diffs(kind, spec, diff_status),
+                diffs: this.differ.all_diffs(kind, spec, status, this.logger),
                 metadata, provider, kind, spec, status,
             };
         } catch (e) {
