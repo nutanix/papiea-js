@@ -1,3 +1,4 @@
+- Version 0.9.34+2048: add python sdk installation instructions
 - Version 0.9.33+2032: fix directive
 - Version 0.9.32+2024: try remove build stage
 - Version 0.9.31+2020: Improved logging information for papiea (#623) PR url: git@github.com:nutanix/papiea.git/pull/623
