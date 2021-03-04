@@ -1,3 +1,4 @@
+- Version 0.9.36+2060: Background task implementation (#635) PR url: git@github.com:nutanix/papiea.git/pull/635
 - Version 0.9.35+2054: Remove undefined and null fields from the differ input entity. (#645) PR url: git@github.com:nutanix/papiea.git/pull/645
 - Version 0.9.34+2048: add python sdk installation instructions
 - Version 0.9.33+2032: fix directive
