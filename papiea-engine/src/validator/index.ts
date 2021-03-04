@@ -163,14 +163,15 @@ export class ValidatorImpl {
      * @param schema - schema to remove the fields from.
      * @param fieldName - type of x-papiea value spec-only|status-only.
      */
-    remove_schema_fields(schema: any, fieldName: string) {
-        for (let prop in schema) {
-            if (typeof schema[prop] === 'object' && "x-papiea" in schema[prop] && schema[prop]["x-papiea"] === fieldName) {
-                delete schema[prop]
-            } else if (typeof schema[prop] === 'object')
-                this.remove_schema_fields(schema[prop], fieldName)
-        }
-    }
+   remove_schema_fields(schema: any, fieldName: string) {
+       for (let prop in schema) {
+           if (typeof schema[prop] === "object" && "x-papiea" in schema[prop] && schema[prop]["x-papiea"] === fieldName) {
+               delete schema[prop]
+           } else if (typeof schema[prop] === "object") {
+               this.remove_schema_fields(schema[prop], fieldName)
+           }
+       }
+   }
 
     public async validate_status(provider: Provider, entity_ref: Entity_Reference, status: Status) {
         if (status === undefined || isEmpty(status)) {
@@ -196,16 +197,18 @@ export class ValidatorImpl {
     }
 
     public validate_provider(provider: Provider) {
+        this.check_nullable_modifier(this.provider_schema, provider.prefix, provider.version)
+        this.check_nullable_modifier(this.procedural_signature_schema, provider.prefix, provider.version)
         const schemas = {}
         Object.assign(schemas, this.provider_schema)
         Object.assign(schemas, this.procedural_signature_schema)
         this.validate(
-            provider.prefix, provider.version, 'Provider',
+            provider.prefix, provider.version, "Provider",
             provider, Object.values(this.provider_schema)[0],
             schemas, true, Object.keys(this.provider_schema)[0], this.validate_provider.name, true)
         Object.values(provider.procedures).forEach(proc => {
             this.validate(
-                provider.prefix, provider.version, 'ProviderProcedure',
+                provider.prefix, provider.version, "ProviderProcedure",
                 proc, Object.values(this.procedural_signature_schema)[0],
                 schemas, true, Object.keys(this.procedural_signature_schema)[0],
                 proc.name, true)
@@ -241,6 +244,7 @@ export class ValidatorImpl {
     validate_kind_structure(schema: Data_Description, provider_prefix: string, provider_version: string, kind_name: string) {
         const x_papiea_field = "x-papiea"
         const status_only_value = FieldBehavior.StatusOnly
+        this.check_nullable_modifier(schema, provider_prefix, provider_version, kind_name)
         // x_papiea_field property have only status_only_value value
         this.validate_field_value(schema[kind_name], x_papiea_field, [status_only_value], provider_prefix, provider_version, kind_name)
         this.validate_spec_only_structure(schema[kind_name], provider_prefix, provider_version, kind_name)
@@ -280,6 +284,28 @@ export class ValidatorImpl {
         if (typeof entity === "object" && entity.hasOwnProperty(x_papiea_entity_field) && entity[x_papiea_entity_field] === spec_only_value) {
             // spec-only entity can't have x_papiea_field values
             this.validate_field_value(entity.properties, x_papiea_field, [], provider_prefix, provider_version, kind_name)
+        }
+    }
+
+    check_nullable_modifier(schema: Data_Description, provider_prefix: string, provider_version: string, kind_name?: string) {
+        for (let field in schema) {
+            const field_schema = schema[field]
+            if (field_schema.hasOwnProperty("type")) {
+                if (field_schema["type"] === "object") {
+                    if (field_schema.hasOwnProperty("nullable")) {
+                        const message = `Papiea doesn't support 'nullable' fields. Please make a field non-required instead. for: ${provider_prefix}/${provider_version}`
+                        throw new ValidationError([{
+                            name: "ValidationError",
+                            message: kind_name ? message + `/${kind_name}` : message
+                        }], {
+                            provider_prefix: provider_prefix,
+                            provider_version: provider_version,
+                            kind_name: kind_name
+                        })
+                    }
+                    this.check_nullable_modifier(field_schema["properties"], provider_prefix, provider_version, kind_name)
+                }
+            }
         }
     }
 
