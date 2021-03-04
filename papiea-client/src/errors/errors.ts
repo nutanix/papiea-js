@@ -1,7 +1,7 @@
 import { PapieaError } from "papiea-core"
 
 export class PapieaErrorImpl extends Error {
-    original_error: any
+    original_error: Error
 
     constructor(message: string, e: any) {
         super(message)

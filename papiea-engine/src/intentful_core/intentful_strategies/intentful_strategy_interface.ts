@@ -69,7 +69,7 @@ export abstract class IntentfulStrategy {
                 }
             }
         } else {
-            throw new OnActionError({ message: `Could not delete the entity since kind: ${entity.metadata?.provider_prefix}/${entity.metadata?.provider_version}/${entity.metadata?.kind} is not registered.`, entity_info: { provider_prefix: entity.metadata?.provider_prefix, provider_version: entity.metadata?.provider_version, kind_name: entity.metadata?.kind, additional_info: { "entity_uuid": entity.metadata?.uuid ?? '', "procedure_name": procedure_name }}})
+            throw new OnActionError({ message: `Could not delete the entity since kind: ${entity.metadata?.provider_prefix}/${entity.metadata?.provider_version}/${entity.metadata?.kind} is not defined for the strategy.`, entity_info: { provider_prefix: entity.metadata?.provider_prefix, provider_version: entity.metadata?.provider_version, kind_name: entity.metadata?.kind, additional_info: { "entity_uuid": entity.metadata?.uuid ?? '', "procedure_name": procedure_name }}})
         }
     }
 

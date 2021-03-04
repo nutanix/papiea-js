@@ -106,7 +106,7 @@ describe("MongoDb tests", () => {
             await specDb.update_spec(entity_metadata, spec);
         } catch (err) {
             expect(err).toBeInstanceOf(ConflictingEntityError);
-            expect(err.entity_info.additional_info.existing_spec_version).toEqual("1");
+            expect(err.entity_info.additional_info.existing_spec_version).toEqual("2");
         }
     });
 

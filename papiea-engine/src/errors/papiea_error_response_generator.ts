@@ -10,10 +10,10 @@ import { PermissionDeniedError, UnauthorizedError } from "./permission_error";
 import { BadRequestError } from "./bad_request_error";
 import { PapieaError } from "papiea-core";
 import {Logger} from "papiea-backend-utils"
-import { PapieaException } from "../errors/papiea_exception"
+import { PapieaException } from "./papiea_exception"
 import { OnActionError } from "./on_action_error";
 
-export class PapieaErrorResponseImpl implements PapieaResponse {
+export class PapieaErrorResponseGenerator implements PapieaResponse {
     error: {
         url: string,
         engine_version: string,
@@ -94,7 +94,7 @@ export class PapieaErrorResponseImpl implements PapieaResponse {
         }
     }
 
-    static create(logger: Logger): (err: any, req: any, papieaVersion: string) => PapieaErrorResponseImpl {
+    static create(logger: Logger): (err: any, req: any, papieaVersion: string) => PapieaErrorResponseGenerator {
         return (err: any, req: any, papieaVersion: string) => {
             let status_code: number
             let message: string
@@ -145,7 +145,7 @@ export class PapieaErrorResponseImpl implements PapieaResponse {
                     err.name = PapieaError.ServerError
                     break
             }
-            return new PapieaErrorResponseImpl(req.url, papieaVersion, status_code, message, err)
+            return new PapieaErrorResponseGenerator(req.url, papieaVersion, status_code, message, err)
         }
     }
 }

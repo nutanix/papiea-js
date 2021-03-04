@@ -67,7 +67,7 @@ export class Spec_DB_Mongo implements Spec_DB {
                     throw new PapieaException({ message: `MongoDBError: Cannot create entity spec for kind: ${entity_metadata.provider_prefix}/${entity_metadata.provider_version}/${entity_metadata.kind}.`, entity_info: { provider_prefix: entity_metadata.provider_prefix, provider_version: entity_metadata.provider_version, kind_name: entity_metadata.kind, additional_info: { "entity_uuid": entity_metadata.uuid }}, cause: e})
                 }
                 const [metadata, spec] = res
-                throw new ConflictingEntityError(`MongoDBError: Spec with this version already exists for entity with UUID ${entity_metadata.uuid} of kind: ${entity_metadata.provider_prefix}/${entity_metadata.provider_version}/${entity_metadata.kind}.`, entity_metadata);
+                throw new ConflictingEntityError(`MongoDBError: Spec with this version already exists for entity with UUID ${entity_metadata.uuid} of kind: ${entity_metadata.provider_prefix}/${entity_metadata.provider_version}/${entity_metadata.kind}.`, metadata);
             } else {
                 throw new PapieaException({ message: `MongoDBError: Something went wrong in update spec for entity of kind: ${entity_metadata.provider_prefix}/${entity_metadata.provider_version}/${entity_metadata.kind}.`, entity_info: { provider_prefix: entity_metadata.provider_prefix, provider_version: entity_metadata.provider_version, kind_name: entity_metadata.kind, additional_info: { "entity_uuid": entity_metadata.uuid }}, cause: err });
             }

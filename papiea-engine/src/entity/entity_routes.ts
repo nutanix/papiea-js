@@ -209,7 +209,7 @@ function queryToNum(q?: ExpressQueryParam, fieldName?: string): number | undefin
         case 'string': return Number.parseFloat(q);
         case 'undefined': return undefined;
         default:
-            throw new BadRequestError({ message: `Query parameter: ${fieldName} has invalid type: ${typeof q}, expected (number, string, undefined).` });
+            throw new BadRequestError({ message: `Query parameter: ${fieldName} has invalid type: ${typeof q}, expected (number, string).` });
     }
 }
 
@@ -218,7 +218,7 @@ function queryToString(q?: ExpressQueryParam, fieldName?: string): string | unde
         case 'string': return q;
         case 'undefined': return undefined;
         default:
-            throw new BadRequestError({ message: `Query parameter: ${fieldName} has invalid type: ${typeof q}, expected (string, undefined).` });
+            throw new BadRequestError({ message: `Query parameter: ${fieldName} has invalid type: ${typeof q}, expected (string).` });
     }
 }
 
@@ -227,6 +227,6 @@ function queryToBool(q?: ExpressQueryParam, fieldName?: string): boolean | undef
         case 'string': return q === "true"
         case 'undefined': return undefined;
         default:
-            throw new BadRequestError({ message: `Query parameter: ${fieldName} has invalid type: ${typeof q}, expected (string, undefined).` });
+            throw new BadRequestError({ message: `Query parameter: ${fieldName} has invalid type: ${typeof q}, expected (string).` });
     }
 }
