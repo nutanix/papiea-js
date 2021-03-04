@@ -364,6 +364,33 @@ describe("Intentful Workflow tests single provider", () => {
         }
     })
 
+    test("Background tasks should work", async () => {
+        expect.hasAssertions();
+        const sdk = ProviderSdk.create_provider(papieaUrl, adminKey, server_config.host, server_config.port);
+        try {
+            let times_invoked = 0
+            first_provider_prefix = "location_provider_intentful_background_task"
+            const location = sdk.new_kind(locationDataDescription);
+            sdk.version(provider_version);
+            sdk.prefix(first_provider_prefix);
+            const task = sdk.background_task("sample-task", 5, async () => {
+                times_invoked++
+            })
+            try {
+                await sdk.register();
+                await task.start_task()
+                await timeout(4000)
+                expect(times_invoked).toEqual(1)
+                await task.kill_task()
+            } catch (e) {
+                console.log(`Couldn't get entity: ${e}`)
+                expect(e).toBeUndefined()
+            }
+        } finally {
+            sdk.cleanup()
+        }
+    })
+
     test("Delay of null should be eligible", async () => {
         expect.hasAssertions();
         const sdk = ProviderSdk.create_provider(papieaUrl, adminKey, server_config.host, server_config.port);

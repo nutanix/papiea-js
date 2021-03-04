@@ -1,36 +1,40 @@
 import {
     IntentfulCtx_Interface,
-    ProceduralCtx_Interface, ProcedureDescription,
+    ProceduralCtx_Interface,
+    ProcedureDescription,
     Provider as ProviderImpl,
     Provider_Power,
     SecurityApi
 } from "./typescript_sdk_interface"
-import axios, { AxiosInstance } from "axios"
-import { plural } from "pluralize"
+import axios, {AxiosInstance} from "axios"
+import {plural} from "pluralize"
 import * as express from "express"
-import { Express, RequestHandler } from "express"
+import {Express, RequestHandler} from "express"
 import * as asyncHandler from "express-async-handler"
-import { Server } from "http"
-import { ProceduralCtx } from "./typescript_sdk_context_impl"
-import {intent_watcher_client, IntentWatcherClient } from "papiea-client"
+import {Server} from "http"
+import {ProceduralCtx} from "./typescript_sdk_context_impl"
+import {EntityCRUD, intent_watcher_client, IntentWatcherClient, kind_client} from "papiea-client"
 import {
     Data_Description,
     Entity,
+    ErrorSchemas,
     Intentful_Execution_Strategy,
     Kind,
+    Metadata,
     Procedural_Execution_Strategy,
     Procedural_Signature,
     Provider,
     S2S_Key,
     Secret,
+    Spec,
     SpecOnlyEntityKind,
+    Status,
     UserInfo,
     Version,
-    IntentWatcher, ErrorSchemas, Status, Spec, Metadata,
 } from "papiea-core"
 import {getTracer, LoggerFactory} from "papiea-backend-utils"
-import { InvocationError, SecurityApiError } from "./typescript_sdk_exceptions"
-import {validate_error_codes, get_papiea_version, spanSdkOperation} from "./typescript_sdk_utils"
+import {InvocationError, SecurityApiError} from "./typescript_sdk_exceptions"
+import {get_papiea_version, spanSdkOperation, validate_error_codes} from "./typescript_sdk_utils"
 import {Tracer} from "opentracing"
 
 class SecurityApiImpl implements SecurityApi {
@@ -271,6 +275,10 @@ export class ProviderSdk implements ProviderImpl {
         return this
     }
 
+    background_task(name: string, delay_sec: number, callback: (entity?: Entity) => Promise<any>, provider_fields_schema?: any): BackgroundTaskBuilder {
+        return BackgroundTaskBuilder.create_task(this, name, delay_sec, callback, this._tracer, provider_fields_schema)
+    }
+
     async register(): Promise<void> {
         if (this._prefix !== null && this._version !== null && this._kind.length !== 0) {
             this._provider = {
@@ -428,6 +436,150 @@ class Provider_Server_Manager {
         }
     }
 }
+
+export class BackgroundTaskBuilder {
+    private provider: ProviderSdk
+    private tracer: Tracer
+    private name: string
+    private kind: Kind_Builder
+    private task_entity: Entity | null = null
+    private kind_client: EntityCRUD
+    static BackgroundTaskState = class {
+        static RunningSpecState() {
+            return "Should Run"
+        }
+        static RunningStatusState() {
+            return "Running"
+        }
+        static IdleSpecState() {
+            return "Idle"
+        }
+        static IdleStatusState() {
+            return "Idle"
+        }
+    }
+
+
+    constructor(provider: ProviderSdk, tracer: Tracer, name: string, kindBuilder: Kind_Builder) {
+        this.provider = provider
+        this.tracer = tracer
+        this.name = name
+        this.kind = kindBuilder
+        this.kind_client = kind_client(provider.papiea_url, provider.get_prefix(), name, provider.get_version(), provider.s2s_key)
+    }
+
+    static create_task(provider: ProviderSdk, name: string, delay_sec: number, callback: (entity?: Entity) => Promise<any>, tracer: Tracer, custom_schema?: any): BackgroundTaskBuilder {
+        const schema: any = {
+            type: "object",
+            "x-papiea-entity": "differ",
+            properties: {
+                state: {
+                    type: "string"
+                }
+            }
+        }
+        if (custom_schema) {
+            this.modify_task_schema(custom_schema)
+            schema["properties"]["provider_fields"] = custom_schema
+        }
+        const kind = provider.new_kind({[name]: schema})
+        kind.on("state", async (ctx, entity, input) => {
+            await callback(entity)
+            return {
+                delay_secs: delay_sec
+            }
+        })
+        return new BackgroundTaskBuilder(provider, tracer, name, kind)
+    }
+
+    private async update_task_entity() {
+        if (this.task_entity) {
+            this.task_entity = await this.kind_client.get(this.task_entity.metadata)
+        }
+    }
+
+    async start_task() {
+        const states = BackgroundTaskBuilder.BackgroundTaskState
+        if (this.task_entity === null) {
+            this.task_entity = await this.kind_client.create({spec: {state: states.RunningSpecState()}})
+            await this.provider.provider_api_axios.patch(`${this.provider.provider_url}/${this.provider.get_prefix()}/${this.provider.get_version()}/update_status`,{
+                entity_ref: this.task_entity.metadata,
+                status: {
+                    state: states.RunningStatusState()
+                }
+            });
+        } else {
+            await this.update_task_entity()
+            await this.kind_client.update(this.task_entity.metadata, {state: states.RunningSpecState()})
+            await this.provider.provider_api_axios.patch(`${this.provider.provider_url}/${this.provider.get_prefix()}/${this.provider.get_version()}/update_status`,{
+                entity_ref: this.task_entity.metadata,
+                status: {
+                    state: states.RunningStatusState()
+                }
+            });
+        }
+    }
+
+    async stop_task() {
+        const states = BackgroundTaskBuilder.BackgroundTaskState
+        if (this.task_entity === null) {
+            throw new Error(`Attempting to stop missing background task (${this.name}) on provider: 
+                            ${this.provider.get_prefix()}, ${this.provider.get_version()}`)
+        } else {
+            await this.update_task_entity()
+            await this.kind_client.update(this.task_entity.metadata, {state: states.IdleSpecState()})
+            await this.provider.provider_api_axios.patch(`${this.provider.provider_url}/${this.provider.get_prefix()}/${this.provider.get_version()}/update_status`,{
+                entity_ref: this.task_entity.metadata,
+                status: {
+                    state: states.IdleStatusState()
+                }
+            });
+        }
+    }
+
+    async kill_task() {
+        if (this.task_entity === null) {
+            throw new Error(`Attempting to kill missing background task (${this.name}) on provider: 
+                            ${this.provider.get_prefix()}, ${this.provider.get_version()}`)
+        } else {
+            await this.update_task_entity()
+            await this.kind_client.delete(this.task_entity.metadata)
+        }
+    }
+
+    // Make all the fields apart from 'task' status-only
+    private static modify_task_schema(schema: any) {
+        for (let prop in schema) {
+            if (schema.hasOwnProperty(prop)) {
+                let nested_prop = schema[prop]
+                if (nested_prop["type"]) {
+                    if (
+                        nested_prop["type"] === "object"
+                        && nested_prop["properties"]
+                        && Object.keys(nested_prop["properties"]).length > 0
+                    ) {
+                        this.modify_task_schema(nested_prop["properties"])
+                    }
+                    nested_prop["x-papiea"] = "status-only"
+                }
+            }
+        }
+    }
+
+    async update_task(status: any) {
+        if (this.task_entity === null) {
+            throw new Error(`Attempting to update missing background task (${this.name}) on provider: 
+                            ${this.provider.get_prefix()}, ${this.provider.get_version()}`)
+        } else {
+            await this.update_task_entity()
+            await this.provider.provider_api_axios.patch(`${this.provider.provider_url}/${this.provider.get_prefix()}/${this.provider.get_version()}/update_status`,{
+                entity_ref: this.task_entity,
+                status: {provider_fields: status}
+            });
+        }
+    }
+}
+
 export class Kind_Builder {
 
     kind: Kind;

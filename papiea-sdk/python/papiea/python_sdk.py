@@ -1,4 +1,5 @@
 import logging
+from enum import Enum
 from types import TracebackType
 from typing import Any, Callable, List, NoReturn, Optional, Type, Union
 
@@ -6,7 +7,7 @@ from aiohttp import web
 from opentracing import Tracer, Format, child_of
 
 from .api import ApiInstance
-from .client import IntentWatcherClient
+from .client import IntentWatcherClient, EntityCRUD
 from .core import (
     DataDescription,
     Entity,
@@ -21,7 +22,7 @@ from .core import (
     UserInfo,
     Version, ProcedureDescription,
     ConstructorProcedureDescription,
-    ConstructorResult, CreateS2SKeyRequest
+    ConstructorResult, CreateS2SKeyRequest, AttributeDict
 )
 from .python_sdk_context import IntentfulCtx, ProceduralCtx
 from .python_sdk_exceptions import InvocationError, SecurityApiError
@@ -340,6 +341,10 @@ class ProviderSdk(object):
     def power(self, state: ProviderPower) -> ProviderPower:
         raise Exception("Unimplemented")
 
+    def background_task(self, name: str, delay_sec: float, callback: Callable[[Optional[Entity]], Any],
+                        provider_fields_schema: Optional[dict]) -> "BackgroundTaskBuilder":
+        return BackgroundTaskBuilder.create_task(self, name, delay_sec, callback, self.tracer, provider_fields_schema)
+
     @staticmethod
     def _provider_description_error(missing_field: str) -> NoReturn:
         raise Exception(f"Malformed provider description. Missing: {missing_field}")
@@ -597,3 +602,129 @@ class KindBuilder:
             name, ProcedureDescription(), handler
         )
         return self
+
+
+class BackgroundTaskBuilder:
+    provider: ProviderSdk
+    tracer: Tracer
+    name: str
+    kind_builder: KindBuilder
+    task_entity: Union[Entity, None]
+
+    class BackgroundTaskState(Enum):
+        RunningSpecState = "Should Run"
+        RunningStatusState = "Running"
+        IdleSpecState = "Idle"
+        IdleStatusState = "Idle"
+
+    def __init__(self, provider: ProviderSdk, tracer: Tracer, name: str, kind_builder: KindBuilder):
+        self.provider = provider
+        self.tracer = tracer
+        self.kind_builder = kind_builder
+        self.name = name
+
+    @staticmethod
+    def create_task(provider: ProviderSdk, name: str, delay_sec: float, callback: Callable[[Optional[Entity]], Any],
+                    tracer: Tracer, custom_schema: Optional[dict]):
+        schema = {
+            "type": "object",
+            "x-papiea-entity": "differ",
+            "properties": {
+                "state": {
+                    "type": "string"
+                }
+            }
+        }
+        if custom_schema:
+            BackgroundTaskBuilder.modify_task_schema(custom_schema)
+            schema["properties"]["provider_fields"] = custom_schema
+        kind = provider.new_kind({name: schema})
+
+        async def callback_func(ctx, entity, input):
+            await callback(entity)
+            return {
+                "delay_secs": delay_sec
+            }
+        kind.on("state", callback_func)
+        return BackgroundTaskBuilder(provider, tracer, name, kind)
+
+    async def update_task_entity(self):
+        if self.task_entity:
+            async with EntityCRUD(self.provider.papiea_url, self.provider.get_prefix(), self.provider.get_version(),
+                                  self.name, self.provider.s2s_key) as client:
+                self.task_entity = await client.get(self.task_entity.metadata)
+
+    async def start_task(self):
+        if self.task_entity is None:
+            async with EntityCRUD(self.provider.papiea_url, self.provider.get_prefix(), self.provider.get_version(),
+                                  self.name, self.provider.s2s_key) as client:
+                self.task_entity = await client.create({"spec": {"state": self.BackgroundTaskState.RunningSpecState}})
+            url = f"{self.provider.get_prefix()}/{self.provider.get_version()}"
+            await self.provider.provider_api.patch(
+                f"{url}/update_status",
+                {"entity_ref": self.task_entity.metadata,
+                 "status": {"state": self.BackgroundTaskState.RunningStatusState}},
+            )
+        else:
+            await self.update_task_entity()
+            async with EntityCRUD(self.provider.papiea_url, self.provider.get_prefix(), self.provider.get_version(),
+                                  self.name, self.provider.s2s_key) as client:
+                self.task_entity = await client.update(self.task_entity.metadata,
+                                                       {"spec": {"state": self.BackgroundTaskState.RunningSpecState}})
+            url = f"{self.provider.get_prefix()}/{self.provider.get_version()}"
+            await self.provider.provider_api.patch(
+                f"{url}/update_status",
+                {"entity_ref": self.task_entity.metadata,
+                 "status": {"state": self.BackgroundTaskState.RunningStatusState}},
+            )
+
+    async def stop_task(self):
+        if self.task_entity is None:
+            raise Exception(f"Attempting to stop missing background task ({self.name}) on provider: "
+                            f"{self.provider.get_prefix()}, {self.provider.get_version()}")
+        else:
+            await self.update_task_entity()
+            async with EntityCRUD(self.provider.papiea_url, self.provider.get_prefix(), self.provider.get_version(),
+                                  self.name, self.provider.s2s_key) as client:
+                self.task_entity = await client.update(self.task_entity.metadata,
+                                                       {"spec": {"state": self.BackgroundTaskState.IdleSpecState}})
+            url = f"{self.provider.get_prefix()}/{self.provider.get_version()}"
+            await self.provider.provider_api.patch(
+                f"{url}/update_status",
+                {"entity_ref": self.task_entity.metadata,
+                 "status": {"state": self.BackgroundTaskState.IdleStatusState}},
+            )
+
+    async def kill_task(self):
+        if self.task_entity is None:
+            raise Exception(f"Attempting to kill missing background task ({self.name}) on provider: "
+                            f"{self.provider.get_prefix()}, {self.provider.get_version()}")
+        else:
+            await self.update_task_entity()
+            async with EntityCRUD(self.provider.papiea_url, self.provider.get_prefix(), self.provider.get_version(),
+                                  self.name, self.provider.s2s_key) as client:
+                await client.delete(self.task_entity.metadata)
+
+    @staticmethod
+    def modify_task_schema(schema: dict):
+        """Make all the fields apart from 'task' status-only"""
+        for key in schema:
+            nested_prop = schema[key]
+            if nested_prop.get("type"):
+                if nested_prop["type"] == "object" and nested_prop.get("properties") and \
+                        len(list(nested_prop["properties"].keys())) > 0:
+                    BackgroundTaskBuilder.modify_task_schema(nested_prop["properties"])
+                nested_prop["x-papiea"] = "status-only"
+
+    async def update_task(self, status: dict):
+        if self.task_entity is None:
+            raise Exception(f"Attempting to update missing background task ({self.name}) on provider: "
+                            f"{self.provider.get_prefix()}, {self.provider.get_version()}")
+        else:
+            await self.update_task_entity()
+            url = f"{self.provider.get_prefix()}/{self.provider.get_version()}"
+            await self.provider.provider_api.patch(
+                f"{url}/update_status",
+                {"entity_ref": self.task_entity.metadata,
+                 "status": {"provider_fields": status}}
+            )
