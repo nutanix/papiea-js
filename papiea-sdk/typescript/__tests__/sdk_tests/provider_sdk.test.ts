@@ -1589,7 +1589,7 @@ describe("SDK + oauth provider tests", () => {
     const kind_name = provider.kinds[0].name;
     let entity_metadata: Metadata, entity_spec: Spec;
     const oauth2Server = OAuth2Server.createServer();
-    const providerSDKTestLogger = LoggerFactory.makeLogger({level: "info"});
+    const providerSDKTestLogger = LoggerFactory.makeLogger({level: "info", pretty_print: true});
 
     beforeAll(async () => {
         await providerApiAdmin.post('/', provider);

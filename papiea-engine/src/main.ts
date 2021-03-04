@@ -42,10 +42,11 @@ const adminKey = config.admin_key
 const loggingLevel = logLevelFromString(config.logging_level)
 const papieaDebug = config.debug
 const verbosityOptions = config.logging_verbosity
+const prettyPrint = config.pretty_print
 const tracingConfig = config.tracing_config
 
 async function setUpApplication(): Promise<express.Express> {
-    const logger = LoggerFactory.makeLogger({level: loggingLevel, verbosity_options: verbosityOptions});
+    const logger = LoggerFactory.makeLogger({level: loggingLevel, verbosity_options: verbosityOptions, pretty_print: prettyPrint});
     const tracer = getTracer("papiea-engine", logger, tracingConfig.reporter, tracingConfig.sampler, tracingConfig.logMessages)
     const trace = getTracingMiddleware(tracer)
     const auditLogger: AuditLogger = new AuditLogger(logger, papieaDebug)

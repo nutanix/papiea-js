@@ -57,7 +57,7 @@ export class LoggerHandle {
 export type LoggerOptions = {
     logPath?: string,
     level: LogLevel,
-    format: 'json' | 'pretty',
+    pretty_print: boolean,
     verbosity_options: LoggingVerbosityOptions
 }
 
@@ -67,9 +67,6 @@ export class LoggerFactory {
     private static readonly INSPECT_OPTIONS = {
         sorted: true, getters: true, depth: 10,
     }
-
-    private static readonly PRODUCTION =
-        (process?.env?.NODE_ENV === 'production')
 
     public static makeLogger(options: Partial<LoggerOptions>): Logger {
         const factory = new LoggerFactory(options)
@@ -87,7 +84,7 @@ export class LoggerFactory {
     constructor(options: Partial<LoggerOptions>) {
         this.options = LoggerFactory.mergeOptions({
             level: 'info',
-            format: LoggerFactory.PRODUCTION ? 'json' : 'pretty',
+            pretty_print: false,
             verbosity_options: {
                 verbose: false,
                 fields: []
@@ -103,12 +100,12 @@ export class LoggerFactory {
             formatArgs.push(winston.format.label({label: opts.logPath}))
         }
 
-        switch (opts.format) {
-        case 'json':
+        switch (opts.pretty_print) {
+        case false: // json
             formatArgs.push(winston.format.json())
             break
 
-        case 'pretty':
+        case true:  // pretty
             const skip_fields = ['level','timestamp','label','message','stack']
 
             formatArgs.push(winston.format.errors({stack: true}))
@@ -170,7 +167,7 @@ export class LoggerFactory {
                                           : opt.logPath
             }
             if (opt.level) res.level = opt.level
-            if (opt.format) res.format = opt.format
+            if (opt.pretty_print) res.pretty_print = opt.pretty_print
             if (opt.verbosity_options) res.verbosity_options = opt.verbosity_options
             return res
         }, Object.assign({}, first))

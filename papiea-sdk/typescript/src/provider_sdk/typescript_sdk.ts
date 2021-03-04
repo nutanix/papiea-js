@@ -759,7 +759,7 @@ export class Kind_Builder {
     on_create(description: {input_schema?: any, error_schemas?: ErrorSchemas}, handler: (ctx: ProceduralCtx_Interface, input: any) => Promise<{spec: Spec, status: Status, metadata?: Partial<Metadata>}>): Kind_Builder {
         const name = `__${this.kind.name}_create`
         const loggerFactory = new LoggerFactory({logPath: name})
-        const [logger, handle] = loggerFactory.createLogger()
+        const [logger, handle] = loggerFactory.createLogger({pretty_print: true})
         logger.info(`You are registering on create handler for kind: ${this.kind.name}. Note, this is a post create handler. The behaviour is due to change`)
         if (!description.input_schema) {
             logger.info(`Input schema is undefined for on_create handler, using the schema for kind: ${this.kind.name}`)
@@ -773,7 +773,7 @@ export class Kind_Builder {
     on_delete(handler: (ctx: ProceduralCtx_Interface, entity: Partial<Entity>) => Promise<void>): Kind_Builder {
         const name = `__${this.kind.name}_delete`
         const loggerFactory = new LoggerFactory({logPath: name})
-        const [logger, handle] = loggerFactory.createLogger()
+        const [logger, handle] = loggerFactory.createLogger({pretty_print: true})
         logger.info(`You are registering on delete handler for kind: ${this.kind.name}. Note, this is a pre delete handler. The behaviour is due to change`)
         handle.cleanup()
         this.kind_procedure(name, {}, handler)

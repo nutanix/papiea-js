@@ -24,9 +24,10 @@ const intentResolveDelay = config.intent_resolve_delay
 const diffResolveDelay = config.diff_resolve_delay
 const diffRetryExponent = config.diff_retry_exponent
 const verbosityOptions = config.logging_verbosity
+const prettyPrint = config.pretty_print
 
 async function setUpDiffResolver() {
-    const logger = LoggerFactory.makeLogger({level: loggingLevel, verbosity_options: verbosityOptions});
+    const logger = LoggerFactory.makeLogger({level: loggingLevel, verbosity_options: verbosityOptions, pretty_print: prettyPrint});
     const mongoConnection: MongoConnection = new MongoConnection(mongoUrl, mongoDb);
     await mongoConnection.connect();
 

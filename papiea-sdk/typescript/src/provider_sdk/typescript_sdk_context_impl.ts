@@ -124,7 +124,7 @@ export class ProceduralCtx implements ProceduralCtx_Interface {
     }
 
     get_logger(level?: LogLevel): Logger {
-        const [logger, handle] = this.loggerFactory.createLogger({level})
+        const [logger, handle] = this.loggerFactory.createLogger({level, pretty_print: true})
         this.loggerHandles.push(handle)
         return logger
     }
