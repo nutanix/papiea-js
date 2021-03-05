@@ -30,7 +30,7 @@ import {
 } from "papiea-core"
 import {getTracer, LoggerFactory} from "papiea-backend-utils"
 import { InvocationError, SecurityApiError } from "./typescript_sdk_exceptions"
-import { isAxiosError, validate_error_codes, get_papiea_version, spanSdkOperation} from "./typescript_sdk_utils"
+import {get_papiea_version, spanSdkOperation, validate_error_codes, isAxiosError} from "./typescript_sdk_utils"
 import {Tracer} from "opentracing"
 
 class SecurityApiImpl implements SecurityApi {
