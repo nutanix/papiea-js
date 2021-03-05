@@ -197,8 +197,7 @@ export class ValidatorImpl {
     }
 
     public validate_provider(provider: Provider) {
-        this.check_nullable_modifier(this.provider_schema, provider.prefix, provider.version)
-        this.check_nullable_modifier(this.procedural_signature_schema, provider.prefix, provider.version)
+        this.check_nullable_modifier(provider, provider.prefix, provider.version)
         const schemas = {}
         Object.assign(schemas, this.provider_schema)
         Object.assign(schemas, this.procedural_signature_schema)
@@ -289,21 +288,24 @@ export class ValidatorImpl {
 
     check_nullable_modifier(schema: Data_Description, provider_prefix: string, provider_version: string, kind_name?: string) {
         for (let field in schema) {
+            if (!schema.hasOwnProperty(field)) {
+                continue
+            }
             const field_schema = schema[field]
             if (field_schema.hasOwnProperty("type")) {
                 if (field_schema["type"] === "object") {
-                    if (field_schema.hasOwnProperty("nullable")) {
-                        const message = `Papiea doesn't support 'nullable' fields. Please make a field non-required instead. for: ${provider_prefix}/${provider_version}`
-                        throw new ValidationError([{
-                            name: "ValidationError",
-                            message: kind_name ? message + `/${kind_name}` : message
-                        }], {
-                            provider_prefix: provider_prefix,
-                            provider_version: provider_version,
-                            kind_name: kind_name
-                        })
-                    }
                     this.check_nullable_modifier(field_schema["properties"], provider_prefix, provider_version, kind_name)
+                }
+                if (field_schema.hasOwnProperty("nullable")) {
+                    const message = `Papiea doesn't support 'nullable' fields. Please make a field '${field}' non-required instead. for: ${provider_prefix}/${provider_version}`
+                    throw new ValidationError([{
+                        name: "ValidationError",
+                        message: kind_name ? message + `/${kind_name}` : message
+                    }], {
+                        provider_prefix: provider_prefix,
+                        provider_version: provider_version,
+                        kind_name: kind_name
+                    })
                 }
             }
         }
