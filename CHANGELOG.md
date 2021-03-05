@@ -1,3 +1,4 @@
+- Version 0.9.39+2079: Update upgrade-versions.sh
 - Version 0.9.38+2074: Removed dependency on Node env production variable in printing logs. (#647) PR url: git@github.com:nutanix/papiea.git/pull/647
 - Version 0.9.36+2060: Background task implementation (#635) PR url: git@github.com:nutanix/papiea.git/pull/635
 - Version 0.9.35+2054: Remove undefined and null fields from the differ input entity. (#645) PR url: git@github.com:nutanix/papiea.git/pull/645
