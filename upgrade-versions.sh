@@ -59,7 +59,7 @@ else
   circle_num="${CIRCLE_BUILD_NUM}"
 fi
 
-make update_typescript_versions UPD_TYPE="manual" BUILD_NUM="'$circle_num'" VERSION="0.9.38"
+make update_typescript_versions UPD_TYPE="patch" BUILD_NUM="'$circle_num'"
 
 # Build typescript packages
 curl -o- -L yarnpkg.com/install.sh | bash
