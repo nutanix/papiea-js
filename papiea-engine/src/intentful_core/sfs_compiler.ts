@@ -45,34 +45,59 @@ function remove_status_only_fields(schema: any, status: Status): Status {
 
 // Removes all the null and undefined fields from the entity
 function remove_undefined_or_null_values(entity: any, logger?: Logger, kind_name: string = '', entity_name: string = '', field_name: string = ''): any {
-    const newObj: any = {};
-    Object.entries(entity).forEach(([k, v]) => {
-        if (Array.isArray(v)) {
-            newObj[k] = []
-            v.forEach(v_item => {
-                newObj[k].push(remove_undefined_or_null_values(v_item, logger, kind_name, entity_name, field_name + "/" + k))
-            });
-        } else if (v === Object(v)) {
-            newObj[k] = remove_undefined_or_null_values(v, logger, kind_name, entity_name, field_name + "/" + k);
-        } else if (v != null && v !== undefined) {
-            newObj[k] = entity[k];
-        } else {
-            if (logger !== undefined) {
-                logger.debug(`Removing undefined/null field: ${field_name}/${k} from the entity ${entity_name} for kind ${kind_name}.`);
+    if (entity === null || entity === undefined) {
+        return null
+    } else if (Array.isArray(entity)) {
+        let newArray: any = []
+        entity.forEach(entity_item => {
+            const ret_val = remove_undefined_or_null_values(entity_item, logger, kind_name, entity_name, field_name)
+            if (ret_val !== null) {
+                newArray.push(ret_val)
             } else {
-                console.debug(`Removing undefined/null field: ${field_name}/${k} from the entity ${entity_name} for kind ${kind_name}.`)
+                if (logger !== undefined) {
+                    logger.debug(`Removing undefined/null list item from field: ${field_name} from ${kind_name}/${entity_name}.`);
+                } else {
+                    console.debug(`Removing undefined/null list item from field: ${field_name} from ${kind_name}/${entity_name}.`)
+                }
             }
-        }
-    });
-    return newObj;
+        });
+        return newArray
+    } else if (typeof entity === 'object') {
+        let newObject: any = {}
+        Object.entries(entity).forEach(([k, v]) => {
+            const ret_val = remove_undefined_or_null_values(v, logger, kind_name, entity_name, field_name + "/" + k)
+            if (ret_val !== null) {
+                newObject[k] = ret_val
+            } else {
+                if (logger !== undefined) {
+                    logger.debug(`Removing undefined/null field: ${field_name}/${k} from ${kind_name}/${entity_name}.`);
+                } else {
+                    console.debug(`Removing undefined/null field: ${field_name}/${k} from ${kind_name}/${entity_name}.`)
+                }
+            }
+        })
+        return newObject
+    } else {
+        return entity
+    }
 }
 
 function cleanup_spec_for_sfs_run(spec: Spec, kind_name: string, logger?: Logger): Spec {
+    if (logger !== undefined) {
+        logger.debug(`Running sanitizer function for ${kind_name}/spec.`);
+    } else {
+        console.debug(`Running sanitizer function for ${kind_name}/spec.`)
+    }
     const diff_spec = remove_undefined_or_null_values(spec, logger, kind_name, "spec")
     return diff_spec
 }
 
 function cleanup_status_for_sfs_run(status: Status, schema: any, kind_name: string, logger?: Logger): Status {
+    if (logger !== undefined) {
+        logger.debug(`Running sanitizer function for ${kind_name}/status.`);
+    } else {
+        console.debug(`Running sanitizer function for ${kind_name}/status.`)
+    }
     let diff_status = remove_undefined_or_null_values(status, logger, kind_name, "status")
     diff_status = remove_status_only_fields(schema, diff_status)
     return diff_status
