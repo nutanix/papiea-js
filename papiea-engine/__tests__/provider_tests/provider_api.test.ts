@@ -267,6 +267,19 @@ describe("Provider API tests", () => {
         }
     });
 
+    test("Nullable procedure fields shouldn't be accepted", async () => {
+        expect.hasAssertions()
+        const provider: Provider = new ProviderBuilder().withVersion("0.1.0").withKinds(clusterKinds).withEntityProcedures().build();
+        const modified_provider = JSON.parse(JSON.stringify(provider))
+        modified_provider.kinds[0].entity_procedures["moveX"].argument["MoveInput"]["properties"]["x"]["nullable"] = true
+        try {
+            await providerApi.post("/", modified_provider)
+        } catch (e) {
+            expect(e.response.status).toEqual(400)
+            expect(e.response.data.error.errors[0].message).toContain("Papiea doesn't support 'nullable' fields. Please make a field 'x' non-required instead.")
+        }
+    });
+
     test("Update status with malformed status should fail validation", async () => {
         expect.hasAssertions();
         const provider: Provider = new ProviderBuilder().withVersion("0.1.0").withKinds(clusterKinds).build();

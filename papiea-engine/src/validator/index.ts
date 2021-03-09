@@ -6,7 +6,7 @@ import {
     FieldBehavior,
     IntentfulBehaviour,
     Kind,
-    Metadata,
+    Metadata, Procedural_Signature,
     Provider,
     Spec,
     Status,
@@ -197,7 +197,6 @@ export class ValidatorImpl {
     }
 
     public validate_provider(provider: Provider) {
-        this.check_nullable_modifier(provider, provider.prefix, provider.version)
         const schemas = {}
         Object.assign(schemas, this.provider_schema)
         Object.assign(schemas, this.procedural_signature_schema)
@@ -206,6 +205,7 @@ export class ValidatorImpl {
             provider, Object.values(this.provider_schema)[0],
             schemas, true, Object.keys(this.provider_schema)[0], this.validate_provider.name, true)
         Object.values(provider.procedures).forEach(proc => {
+            this.check_nullable_modifier_procedure(proc, provider.prefix, provider.version)
             this.validate(
                 provider.prefix, provider.version, "ProviderProcedure",
                 proc, Object.values(this.procedural_signature_schema)[0],
@@ -214,6 +214,7 @@ export class ValidatorImpl {
         })
         provider.kinds.forEach(kind => {
             Object.values(kind.kind_procedures).forEach(proc => {
+                this.check_nullable_modifier_procedure(proc, provider.prefix, provider.version, kind.name)
                 this.validate(
                     provider.prefix, provider.version, kind.name,
                     proc, Object.values(this.procedural_signature_schema)[0],
@@ -221,6 +222,7 @@ export class ValidatorImpl {
                     proc.name, true)
             })
             Object.values(kind.entity_procedures).forEach(proc => {
+                this.check_nullable_modifier_procedure(proc, provider.prefix, provider.version, kind.name)
                 this.validate(
                     provider.prefix, provider.version, kind.name,
                     proc, Object.values(this.procedural_signature_schema)[0],
@@ -228,6 +230,7 @@ export class ValidatorImpl {
                     proc.name, true)
             })
             Object.values(kind.intentful_signatures).forEach(proc => {
+                this.check_nullable_modifier_procedure(proc, provider.prefix, provider.version, kind.name)
                 this.validate(
                     provider.prefix, provider.version, kind.name,
                     proc, Object.values(this.procedural_signature_schema)[0],
@@ -309,6 +312,11 @@ export class ValidatorImpl {
                 }
             }
         }
+    }
+
+    check_nullable_modifier_procedure(proc: Procedural_Signature, provider_prefix: string, provider_version: string, kind_name?: string) {
+       this.check_nullable_modifier(proc.argument, provider_prefix, provider_version, kind_name)
+       this.check_nullable_modifier(proc.result, provider_prefix, provider_version, kind_name)
     }
 
     validate_status_only_field(schema: Data_Description, provider_prefix: string, provider_version: string, kind_name: string) {
