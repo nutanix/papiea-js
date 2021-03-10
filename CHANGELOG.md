@@ -1,3 +1,4 @@
+- Version 0.9.41+2091: Fixed bug in remove status-only fields module to replace schema with status
 - Version 0.9.40+2085: Modified logic for the sanitizer functions in sfs compiler (#649) PR url: git@github.com:nutanix/papiea.git/pull/649
 - Version 0.9.39+2079: Update upgrade-versions.sh
 - Version 0.9.38+2074: Removed dependency on Node env production variable in printing logs. (#647) PR url: git@github.com:nutanix/papiea.git/pull/647
