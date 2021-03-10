@@ -1,3 +1,4 @@
+- Version 0.9.42+2094: Remove nullable fields (#648) PR url: git@github.com:nutanix/papiea.git/pull/648
 - Version 0.9.41+2091: Fixed bug in remove status-only fields module to replace schema with status
 - Version 0.9.40+2085: Modified logic for the sanitizer functions in sfs compiler (#649) PR url: git@github.com:nutanix/papiea.git/pull/649
 - Version 0.9.39+2079: Update upgrade-versions.sh
