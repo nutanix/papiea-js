@@ -19,7 +19,7 @@ function remove_status_only_fields(schema: any, status: Status): Status {
         if (schema.hasOwnProperty('x-papiea') && schema['x-papiea'] === 'status-only') {
             return null
         }
-        if (schema.type === 'object' && status && Object.keys(status).length !== 0) {
+        if (schema.type === 'object' && schema['properties'] && status && Object.keys(status).length !== 0) {
             const properties = schema['properties']
             Object.entries(status).forEach(([k, v]) => {
                 status[k] = remove_status_only_fields(properties[k], status[k])
