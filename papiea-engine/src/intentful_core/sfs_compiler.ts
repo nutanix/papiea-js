@@ -21,13 +21,13 @@ function remove_status_only_fields(schema: any, status: Status): Status {
         }
         if (schema.type === 'object' && status && Object.keys(status).length !== 0) {
             const properties = schema['properties']
-            for (let name in properties) {
-                status[name] = remove_status_only_fields(properties[name], status[name])
+            Object.entries(status).forEach(([k, v]) => {
+                status[k] = remove_status_only_fields(properties[k], status[k])
                 // If received null i.e. a status-only field, delete the field from status object
-                if (status[name] === null) {
-                    delete status[name]
+                if (status[k] === null) {
+                    delete status[k]
                 }
-            }
+            })
         } else if (schema.type === 'array' && status && status.length !== 0) {
             let i = 0;
             // Loop through all values in array and inspect status-only for each
