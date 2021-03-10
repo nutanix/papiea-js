@@ -6,7 +6,7 @@ import {
     FieldBehavior,
     IntentfulBehaviour,
     Kind,
-    Metadata,
+    Metadata, Procedural_Signature,
     Provider,
     Spec,
     Status,
@@ -163,14 +163,15 @@ export class ValidatorImpl {
      * @param schema - schema to remove the fields from.
      * @param fieldName - type of x-papiea value spec-only|status-only.
      */
-    remove_schema_fields(schema: any, fieldName: string) {
-        for (let prop in schema) {
-            if (typeof schema[prop] === 'object' && "x-papiea" in schema[prop] && schema[prop]["x-papiea"] === fieldName) {
-                delete schema[prop]
-            } else if (typeof schema[prop] === 'object')
-                this.remove_schema_fields(schema[prop], fieldName)
-        }
-    }
+   remove_schema_fields(schema: any, fieldName: string) {
+       for (let prop in schema) {
+           if (typeof schema[prop] === "object" && "x-papiea" in schema[prop] && schema[prop]["x-papiea"] === fieldName) {
+               delete schema[prop]
+           } else if (typeof schema[prop] === "object") {
+               this.remove_schema_fields(schema[prop], fieldName)
+           }
+       }
+   }
 
     public async validate_status(provider: Provider, entity_ref: Entity_Reference, status: Status) {
         if (status === undefined || isEmpty(status)) {
@@ -200,18 +201,20 @@ export class ValidatorImpl {
         Object.assign(schemas, this.provider_schema)
         Object.assign(schemas, this.procedural_signature_schema)
         this.validate(
-            provider.prefix, provider.version, 'Provider',
+            provider.prefix, provider.version, "Provider",
             provider, Object.values(this.provider_schema)[0],
             schemas, true, Object.keys(this.provider_schema)[0], this.validate_provider.name, true)
         Object.values(provider.procedures).forEach(proc => {
+            this.check_nullable_modifier_procedure(proc, provider.prefix, provider.version)
             this.validate(
-                provider.prefix, provider.version, 'ProviderProcedure',
+                provider.prefix, provider.version, "ProviderProcedure",
                 proc, Object.values(this.procedural_signature_schema)[0],
                 schemas, true, Object.keys(this.procedural_signature_schema)[0],
                 proc.name, true)
         })
         provider.kinds.forEach(kind => {
             Object.values(kind.kind_procedures).forEach(proc => {
+                this.check_nullable_modifier_procedure(proc, provider.prefix, provider.version, kind.name)
                 this.validate(
                     provider.prefix, provider.version, kind.name,
                     proc, Object.values(this.procedural_signature_schema)[0],
@@ -219,6 +222,7 @@ export class ValidatorImpl {
                     proc.name, true)
             })
             Object.values(kind.entity_procedures).forEach(proc => {
+                this.check_nullable_modifier_procedure(proc, provider.prefix, provider.version, kind.name)
                 this.validate(
                     provider.prefix, provider.version, kind.name,
                     proc, Object.values(this.procedural_signature_schema)[0],
@@ -226,6 +230,7 @@ export class ValidatorImpl {
                     proc.name, true)
             })
             Object.values(kind.intentful_signatures).forEach(proc => {
+                this.check_nullable_modifier_procedure(proc, provider.prefix, provider.version, kind.name)
                 this.validate(
                     provider.prefix, provider.version, kind.name,
                     proc, Object.values(this.procedural_signature_schema)[0],
@@ -241,6 +246,7 @@ export class ValidatorImpl {
     validate_kind_structure(schema: Data_Description, provider_prefix: string, provider_version: string, kind_name: string) {
         const x_papiea_field = "x-papiea"
         const status_only_value = FieldBehavior.StatusOnly
+        this.check_nullable_modifier(schema, provider_prefix, provider_version, kind_name)
         // x_papiea_field property have only status_only_value value
         this.validate_field_value(schema[kind_name], x_papiea_field, [status_only_value], provider_prefix, provider_version, kind_name)
         this.validate_spec_only_structure(schema[kind_name], provider_prefix, provider_version, kind_name)
@@ -281,6 +287,36 @@ export class ValidatorImpl {
             // spec-only entity can't have x_papiea_field values
             this.validate_field_value(entity.properties, x_papiea_field, [], provider_prefix, provider_version, kind_name)
         }
+    }
+
+    check_nullable_modifier(schema: Data_Description, provider_prefix: string, provider_version: string, kind_name?: string) {
+        for (let field in schema) {
+            if (!schema.hasOwnProperty(field)) {
+                continue
+            }
+            const field_schema = schema[field]
+            if (field_schema.hasOwnProperty("type")) {
+                if (field_schema["type"] === "object") {
+                    this.check_nullable_modifier(field_schema["properties"], provider_prefix, provider_version, kind_name)
+                }
+                if (field_schema.hasOwnProperty("nullable")) {
+                    const message = `Papiea doesn't support 'nullable' fields. Please make a field '${field}' non-required instead. for: ${provider_prefix}/${provider_version}`
+                    throw new ValidationError([{
+                        name: "ValidationError",
+                        message: kind_name ? message + `/${kind_name}` : message
+                    }], {
+                        provider_prefix: provider_prefix,
+                        provider_version: provider_version,
+                        kind_name: kind_name
+                    })
+                }
+            }
+        }
+    }
+
+    check_nullable_modifier_procedure(proc: Procedural_Signature, provider_prefix: string, provider_version: string, kind_name?: string) {
+       this.check_nullable_modifier(proc.argument, provider_prefix, provider_version, kind_name)
+       this.check_nullable_modifier(proc.result, provider_prefix, provider_version, kind_name)
     }
 
     validate_status_only_field(schema: Data_Description, provider_prefix: string, provider_version: string, kind_name: string) {

@@ -678,7 +678,6 @@ export class Kind_Builder {
             result: {
                 IntentfulOutput: {
                     type: 'object',
-                    nullable: true,
                     properties: {
                         delay_secs: {
                             type: "integer"

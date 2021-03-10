@@ -256,56 +256,28 @@ describe("Provider API tests", () => {
         }
     });
 
-    test("Partial Update status with undefined values should be meaningful", async () => {
+    test("Kinds with nullable fields should not get registered", async () => {
+        expect.hasAssertions()
         const provider: Provider = new ProviderBuilder().withVersion("0.1.0").withKinds(nullableClusterKinds).build();
-        await providerApi.post('/', provider);
-        const kind_name = provider.kinds[0].name;
-        const { data: { metadata, spec } } = await entityApi.post(`/${ provider.prefix }/${provider.version}/${ kind_name }`, {
-            spec: {
-                host: "small",
-                ip: "0.0.0.0"
-            }
-        });
-
-        const newStatus = { ip: undefined, name: undefined };
         try {
-            await providerApi.patch(`/${ provider.prefix }/${ provider.version }/update_status`, {
-                context: "some context",
-                entity_ref: {
-                    uuid: metadata.uuid,
-                    kind: kind_name
-                },
-                status: newStatus
-            });
+            await providerApi.post("/", provider)
         } catch (e) {
-            expect(e).toBeDefined()
-            expect(e.response.data.error.message).toEqual("Error parsing update query. Update body might be 'undefined', if this is expected, please use 'null'.")
+            expect(e.response.status).toEqual(400)
+            expect(e.response.data.error.errors[0].message).toContain("Papiea doesn't support 'nullable' fields. Please make a field 'host' non-required instead.")
         }
     });
 
-    test("Partial Update status with null values", async () => {
-        const provider: Provider = new ProviderBuilder().withVersion("0.1.0").withKinds(nullableClusterKinds).build();
-        await providerApi.post('/', provider);
-        const kind_name = provider.kinds[0].name;
-        const { data: { metadata, spec } } = await entityApi.post(`/${ provider.prefix }/${provider.version}/${ kind_name }`, {
-            spec: {
-                host: "small",
-                ip: "0.0.0.0"
-            }
-        });
-
-        const newStatus = { ip: null, name: null };
-        await providerApi.patch(`/${provider.prefix}/${provider.version}/update_status`, {
-            context: "some context",
-            entity_ref: {
-                uuid: metadata.uuid,
-                kind: kind_name
-            },
-            status: newStatus
-        });
-
-        const res = await entityApi.get(`/${ provider.prefix }/${provider.version}/${ kind_name }/${ metadata.uuid }`);
-        expect(res.data.status).toEqual({host: "small"});
+    test("Nullable procedure fields shouldn't be accepted", async () => {
+        expect.hasAssertions()
+        const provider: Provider = new ProviderBuilder().withVersion("0.1.0").withKinds(clusterKinds).withEntityProcedures().build();
+        const modified_provider = JSON.parse(JSON.stringify(provider))
+        modified_provider.kinds[0].entity_procedures["moveX"].argument["MoveInput"]["properties"]["x"]["nullable"] = true
+        try {
+            await providerApi.post("/", modified_provider)
+        } catch (e) {
+            expect(e.response.status).toEqual(400)
+            expect(e.response.data.error.errors[0].message).toContain("Papiea doesn't support 'nullable' fields. Please make a field 'x' non-required instead.")
+        }
     });
 
     test("Update status with malformed status should fail validation", async () => {
