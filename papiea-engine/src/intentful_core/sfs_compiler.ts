@@ -19,8 +19,7 @@ export class SFSCompiler {
             throw new ValidationError({
                 message: `Failed to validate the sfs on kind: ${provider_prefix}/${provider_version}/${kind_name}.`,
                 entity_info: { provider_prefix, provider_version, kind_name, additional_info: { "sfs": sfs }},
-                cause: e
-            })
+            }, [e])
         }
     }
 

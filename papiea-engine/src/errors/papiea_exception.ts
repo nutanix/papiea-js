@@ -16,7 +16,7 @@ export class PapieaException extends Error {
     }
 
     getDetailedStackTrace(): string {
-        return this.stack! + `${ (this.cause !== undefined && this.cause instanceof PapieaException) ? "\ncaused by error\n" + this.cause.getDetailedStackTrace() : "" }`
+        return this.stack! + `${ (this.cause !== undefined && this.cause instanceof PapieaException) ? "\ncaused by error\n" + this.cause.getDetailedStackTrace() + "\n" : "" }`
     }
 
     getDetails(): { [key: string]: any } {

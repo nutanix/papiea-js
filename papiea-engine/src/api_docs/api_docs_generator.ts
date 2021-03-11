@@ -9,10 +9,10 @@ function getConstructorProcedureName(kind: Kind): string {
     return `__${kind.name}_create`
 }
 
-function translateSwaggerErrors(swaggerErrors: any, translatedErrorMessages: string[], path: string = '') {
+function translateSwaggerErrors(swaggerErrors: any, translatedErrors: Error[], path: string = '') {
     swaggerErrors.forEach((error: any) => {
         if (error.hasOwnProperty("inner")) {
-            translateSwaggerErrors(error.inner, translatedErrorMessages, error.path.join('.'))
+            translateSwaggerErrors(error.inner, translatedErrors, error.path.join('.'))
         } else {
             // Translate message for the inner most error structure
             if (!path.includes("-Spec") && !path.includes("-Status")) {
@@ -37,7 +37,7 @@ function translateSwaggerErrors(swaggerErrors: any, translatedErrorMessages: str
                         const fieldName = error.path[error.path.length-1]
                         message = `Schema field: ${path}.${fieldName} has duplicate values at indexes ${index1} and ${index2}. Modify/eliminate one of the duplicate fields.`
                     }
-                    translatedErrorMessages.push(message)
+                    translatedErrors.push(new Error(message))
                 }
             }
         }
@@ -48,14 +48,13 @@ async function validateOpenAPISchema(root: any, provider_prefix: string, provide
     try {
         await SwaggerParser.validate(root);
     } catch(err) {
-        let translatedErrorMessages: string[] = []
-        translateSwaggerErrors(err.details, translatedErrorMessages)
-        if (translatedErrorMessages.length > 0) {
+        let translatedErrors: Error[] = []
+        translateSwaggerErrors(err.details, translatedErrors)
+        if (translatedErrors.length > 0) {
             throw new ValidationError({
                 message: "Validation failed for provider OpenAPI schema",
-                entity_info: {provider_prefix, provider_version},
-                cause: new PapieaException({ message: translatedErrorMessages.join('\\n') })
-            })
+                entity_info: {provider_prefix, provider_version}},
+                translatedErrors)
         }
     }
 }

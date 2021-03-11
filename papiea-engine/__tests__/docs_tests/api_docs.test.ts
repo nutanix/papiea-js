@@ -695,7 +695,7 @@ describe("API docs test entity", () => {
             const apiDocsGenerator = new ApiDocsGenerator(providerDbMock);
             await apiDocsGenerator.getApiDocs(providerDbMock.provider);
         } catch (err) {
-            expect(err.cause.message).toBe("Schema has invalid name for the field: Location.decription")
+            expect(err.errors[0].message).toBe("Schema has invalid name for the field: Location.decription")
         }
     });
 
@@ -716,7 +716,7 @@ describe("API docs test entity", () => {
             const apiDocsGenerator = new ApiDocsGenerator(providerDbMock);
             await apiDocsGenerator.getApiDocs(providerDbMock.provider);
         } catch (err) {
-            expect(err.cause.message).toBe("Schema field: Location.properties.v.required has duplicate values at indexes 0 and 2. Modify/eliminate one of the duplicate fields.")
+            expect(err.errors[0].message).toBe("Schema field: Location.properties.v.required has duplicate values at indexes 0 and 2. Modify/eliminate one of the duplicate fields.")
         }
     });
 
@@ -737,7 +737,7 @@ describe("API docs test entity", () => {
             const apiDocsGenerator = new ApiDocsGenerator(providerDbMock);
             await apiDocsGenerator.getApiDocs(providerDbMock.provider);
         } catch (err) {
-            expect(err.cause.message).toBe("Expected list for schema field: Location.required to have minimum size: 1, received size: 0")
+            expect(err.errors[0].message).toBe("Expected list for schema field: Location.required to have minimum size: 1, received size: 0")
         }
     });
 });

@@ -153,9 +153,9 @@ describe("Procedures tests", () => {
             expect(res.status).toEqual(500);
             expect(res.data.error.message).toEqual("Procedure Invocation Failed")
             expect(res.data.error.code).toEqual(500)
-            const error_messages = JSON.parse(res.data.error.error_details.cause.cause.message)
-            expect(error_messages[0]).toContain(`Received procedure input is missing required field: x`);
-            expect(error_messages[1]).toContain(`Received procedure input is missing required field: y`);
+            const errors = res.data.error.error_details.cause.cause.errors
+            expect(errors[0].message).toContain(`Received procedure input is missing required field: x`);
+            expect(errors[1].message).toContain(`Received procedure input is missing required field: y`);
         }
     });
 

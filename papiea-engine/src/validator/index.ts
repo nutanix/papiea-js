@@ -43,10 +43,9 @@ function modelIsNullable(model: any) {
 
 function convertValidatorMessagesToPapieaMessages(
     provider_prefix: string, provider_version: string, kind_name: string,
-    errors: Error[], data: any, model: any): string {
+    errors: Error[], translated_errors: Error[]) {
     let fieldName: string
     let message: string
-    let translated_error_messages: string = ''
     for (let i = 0;i < errors.length;i++) {
         message = errors[i].message
         if (message.includes(SwaggerModelValidatorErrorMessage.undefined_value_str)) {
@@ -92,11 +91,8 @@ function convertValidatorMessagesToPapieaMessages(
             fieldName = message.replace(SwaggerModelValidatorErrorMessage.required_field_missing_schema_str, "")
             message = `Missing/invalid schema definition for required field: ${fieldName} for kind: ${provider_prefix}/${provider_version}/${kind_name}.`
         }
-
-        translated_error_messages = translated_error_messages + (translated_error_messages === '' ? "[" : ", ") + "\"" + message + "\""
+        translated_errors.push(new Error(message))
     }
-    translated_error_messages = translated_error_messages + "]"
-    return translated_error_messages
 }
 
 const SwaggerModelValidator = require('swagger-model-validator');
@@ -363,13 +359,12 @@ export class ValidatorImpl {
 
             const res = this.validator.validate(data, model, models, allowBlankTarget, validatorDenyExtraProps);
             if (!res.valid) {
-                const translated_error_messages = convertValidatorMessagesToPapieaMessages(provider_prefix, provider_version, kind_name, res.errors, data, model)
-                console.log(translated_error_messages)
+                let translated_errors: Error[] = []
+                convertValidatorMessagesToPapieaMessages(provider_prefix, provider_version, kind_name, res.errors, translated_errors)
                 throw new ValidationError({
                     message: `Swagger validator failed to validate object for provider: ${provider_prefix}/${provider_version}.`,
-                    entity_info: { provider_prefix: provider_prefix, provider_version: provider_version, kind_name: kind_name, additional_info: { "procedure_name": procedureName ?? '', "input": JSON.stringify(data), "schema": JSON.stringify(model) }},
-                    cause: new PapieaException({ message: translated_error_messages })
-                });
+                    entity_info: { provider_prefix: provider_prefix, provider_version: provider_version, kind_name: kind_name, additional_info: { "procedure_name": procedureName ?? '', "input": JSON.stringify(data), "schema": JSON.stringify(model) }}
+                }, translated_errors);
             }
             return res
         } else {

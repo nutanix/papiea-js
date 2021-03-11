@@ -52,7 +52,7 @@ function toNum(val: string): number {
     try {
         return Number.parseFloat(val)
     } catch (e) {
-        throw new ValidationError({ message: `Couldn't validate ${val}, expected number.`, cause: e })
+        throw new ValidationError({ message: `Couldn't validate ${val}, expected number.`}, [e])
     }
 }
 const toStr: (val: string) => string = (val: string) => val
