@@ -1357,6 +1357,24 @@ describe("Provider Sdk tests", () => {
         sdk.cleanup()
     });
 
+    test("Provider with untyped object in schema should succeed with warning from papiea", async () => {
+        const sdk = ProviderSdk.create_provider(papieaUrl, adminKey, server_config.host, server_config.port);
+        let untyped_object_schema = JSON.parse(JSON.stringify(STATUS_ONLY_TEST_SCHEMA))
+        untyped_object_schema.TestObject.properties.test.items.properties.c = {
+            type: "object",
+            description: "Test object with untyped schema"
+        }
+        sdk.new_kind(untyped_object_schema);
+        sdk.version(provider_version);
+        sdk.prefix("untyped_object_schema_provider");
+        try {
+            await sdk.register();
+        } catch (e) {
+            console.error(e)
+        }
+        sdk.cleanup()
+    })
+
     test("Create entity spec with status-only field set should fail", async () => {
         expect.assertions(1)
         const sdk = ProviderSdk.create_provider(papieaUrl, adminKey, server_config.host, server_config.port);

@@ -20,6 +20,7 @@ import { resolve } from "path"
 import { cloneDeep } from "lodash"
 import { PapieaException } from "../errors/papiea_exception"
 import uuid = require("uuid");
+import { Logger, LoggerFactory } from "papiea-backend-utils";
 
 // We can receive model in 2 forms:
 // As user specified in definition, which means it has "properties" field ( { properties: {} } } )
@@ -252,6 +253,9 @@ export class ValidatorImpl {
         this.validate_spec_only_structure(schema[kind_name], provider_prefix, provider_version, kind_name)
         // status-only fields cannot be required in schema
         this.validate_status_only_field(schema, provider_prefix, provider_version, kind_name)
+        // warn for untyped object which are not marked as status-only in schema
+        const logger = LoggerFactory.makeLogger({});
+        this.validate_untyped_object(schema, provider_prefix, provider_version, kind_name, logger)
     }
 
     validate_field_value(schema: Data_Description, field_name: string, possible_values: string[], provider_prefix: string, provider_version: string, kind_name: string) {
@@ -350,6 +354,34 @@ export class ValidatorImpl {
                                 }
                                 this.validate_status_only_field(field_schema["items"]["properties"], provider_prefix, provider_version, kind_name)
                             }
+                        }
+                    }
+                }
+            }
+        } catch (e) {
+            throw (e)
+        }
+    }
+
+    validate_untyped_object(schema: Data_Description, provider_prefix: string, provider_version: string, kind_name: string, logger: Logger, field_name: string = '') {
+        try {
+            for(let field in schema) {
+                const field_schema = schema[field]
+                if (field_schema.hasOwnProperty("type")) {
+                    if (field_schema["type"] === "object") {
+                        if ((!field_schema.hasOwnProperty("properties") || field_schema["properties"].length === 0) && (!field_schema.hasOwnProperty("x-papiea") || field_schema["x-papiea"] !== "status-only")) {
+                            logger.warn(`Field ${field_name + "/" + field} is an untyped object with no properties for kind: ${provider_prefix}/${provider_version}/${kind_name}. Please check if this is expected.`)
+                            return
+                        }
+                        this.validate_untyped_object(field_schema["properties"], provider_prefix, provider_version, kind_name, logger, field_name + "/" + field)
+                    }
+                    if (field_schema["type"] === "array") {
+                        if (field_schema.hasOwnProperty("items") && field_schema["items"].hasOwnProperty("type") && field_schema["items"]["type"].includes("object")) {
+                            if ((!field_schema.hasOwnProperty("properties") || field_schema["properties"].length === 0) && (!field_schema.hasOwnProperty("x-papiea") || field_schema["x-papiea"] !== "status-only")) {
+                                logger.warn(`Field ${field_name + "/" + field} is an untyped object with no properties for kind: ${provider_prefix}/${provider_version}/${kind_name}. Please check if this is expected.`)
+                                return
+                            }
+                            this.validate_untyped_object(field_schema["items"]["properties"], provider_prefix, provider_version, kind_name, logger, field_name + "/" + field)
                         }
                     }
                 }
