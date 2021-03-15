@@ -1,3 +1,4 @@
+- Version 0.9.44+2103: fix custom field bugs & added metadata extension adjustment (#653) PR url: git@github.com:nutanix/papiea.git/pull/653
 - Version 0.9.43+2097: Fixed undefined properties in schema bug in remove status-only fields module
 - Version 0.9.42+2094: Remove nullable fields (#648) PR url: git@github.com:nutanix/papiea.git/pull/648
 - Version 0.9.41+2091: Fixed bug in remove status-only fields module to replace schema with status
