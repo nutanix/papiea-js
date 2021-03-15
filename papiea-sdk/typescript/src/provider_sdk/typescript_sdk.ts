@@ -93,7 +93,7 @@ export class ProviderSdk implements ProviderImpl {
     protected readonly providerApiAxios: AxiosInstance;
     protected _version: Version | null;
     protected _prefix: string | null;
-    protected meta_ext: { [key: string]: string };
+    protected meta_ext: { [key: string]: string } | null = null;
     protected _provider: Provider | null;
     protected readonly _papiea_url: string;
     protected readonly _s2skey: Secret;
@@ -116,7 +116,6 @@ export class ProviderSdk implements ProviderImpl {
         this._server_manager = server_manager || new Provider_Server_Manager();
         this._tracer = tracer ?? getTracer("papiea-sdk")
         this._procedures = {};
-        this.meta_ext = {};
         this.allowExtraProps = allowExtraProps || false;
         this.get_prefix = this.get_prefix.bind(this);
         this.get_version = this.get_version.bind(this);
@@ -233,9 +232,13 @@ export class ProviderSdk implements ProviderImpl {
         return this
     }
 
-    metadata_extension(ext: Data_Description): ProviderSdk {
+    public metadata_extension(ext: Data_Description) {
         this.meta_ext = ext;
         return this
+    }
+
+    public get_metadata_extension(): Data_Description | null {
+        return this.meta_ext
     }
 
     provider_procedure(name: string,
@@ -275,8 +278,8 @@ export class ProviderSdk implements ProviderImpl {
         return this
     }
 
-    background_task(name: string, delay_sec: number, callback: (entity?: Entity) => Promise<any>, provider_fields_schema?: any): BackgroundTaskBuilder {
-        return BackgroundTaskBuilder.create_task(this, name, delay_sec, callback, this._tracer, provider_fields_schema)
+    background_task(name: string, delay_sec: number, callback: BackgroundTaskCallback, metadata_extension?: any, provider_fields_schema?: any): BackgroundTaskBuilder {
+        return BackgroundTaskBuilder.create_task(this, name, delay_sec, callback, this._tracer, metadata_extension, provider_fields_schema)
     }
 
     async register(): Promise<void> {
@@ -286,7 +289,7 @@ export class ProviderSdk implements ProviderImpl {
                 version: this._version!,
                 prefix: this._prefix!,
                 procedures: this._procedures,
-                extension_structure: this.meta_ext,
+                extension_structure: this.meta_ext ?? {},
                 allowExtraProps: this.allowExtraProps,
                 ...(this._policy) && {policy: this._policy},
                 ...(this._oauth2) && {oauth2: this._oauth2},
@@ -437,6 +440,8 @@ class Provider_Server_Manager {
     }
 }
 
+type BackgroundTaskCallback = (() => Promise<any>) | ((context: any | undefined) => Promise<any>)
+
 export class BackgroundTaskBuilder {
     private provider: ProviderSdk
     private tracer: Tracer
@@ -444,6 +449,7 @@ export class BackgroundTaskBuilder {
     private kind: Kind_Builder
     private task_entity: Entity | null = null
     private kind_client: EntityCRUD
+    private metadata_extension?: any
     static BackgroundTaskState = class {
         static RunningSpecState() {
             return "Should Run"
@@ -460,15 +466,20 @@ export class BackgroundTaskBuilder {
     }
 
 
-    constructor(provider: ProviderSdk, tracer: Tracer, name: string, kindBuilder: Kind_Builder) {
+    constructor(provider: ProviderSdk, tracer: Tracer, name: string, kind_builder: Kind_Builder, metadata_extension?: any) {
         this.provider = provider
         this.tracer = tracer
         this.name = name
-        this.kind = kindBuilder
+        this.kind = kind_builder
         this.kind_client = kind_client(provider.papiea_url, provider.get_prefix(), name, provider.get_version(), provider.s2s_key)
+        this.metadata_extension = metadata_extension
     }
 
-    static create_task(provider: ProviderSdk, name: string, delay_sec: number, callback: (entity?: Entity) => Promise<any>, tracer: Tracer, custom_schema?: any): BackgroundTaskBuilder {
+    static create_task(provider: ProviderSdk, name: string, delay_sec: number, callback: BackgroundTaskCallback, tracer: Tracer, metadata_extension?: any, custom_schema?: any): BackgroundTaskBuilder {
+        if (provider.get_metadata_extension() !== null && (metadata_extension === null || metadata_extension === undefined)) {
+            throw new Error(`Attempting to create background task (${this.name}) on provider: 
+                            ${provider.get_prefix()}, ${provider.get_version()} without the required metadata extension.`)
+        }
         const schema: any = {
             type: "object",
             "x-papiea-entity": "differ",
@@ -484,12 +495,12 @@ export class BackgroundTaskBuilder {
         }
         const kind = provider.new_kind({[name]: schema})
         kind.on("state", async (ctx, entity, input) => {
-            await callback(entity)
+            await callback(entity?.status?.provider_fields ?? undefined)
             return {
                 delay_secs: delay_sec
             }
         })
-        return new BackgroundTaskBuilder(provider, tracer, name, kind)
+        return new BackgroundTaskBuilder(provider, tracer, name, kind, metadata_extension)
     }
 
     private async update_task_entity() {
@@ -501,7 +512,16 @@ export class BackgroundTaskBuilder {
     async start_task() {
         const states = BackgroundTaskBuilder.BackgroundTaskState
         if (this.task_entity === null) {
-            this.task_entity = await this.kind_client.create({spec: {state: states.RunningSpecState()}})
+            if (this.metadata_extension) {
+                this.task_entity = await this.kind_client.create({
+                    spec: {state: states.RunningSpecState()},
+                    metadata: {
+                        extension: this.metadata_extension
+                    }
+                })
+            } else {
+                this.task_entity = await this.kind_client.create({spec: {state: states.RunningSpecState()}})
+            }
             await this.provider.provider_api_axios.patch(`${this.provider.provider_url}/${this.provider.get_prefix()}/${this.provider.get_version()}/update_status`,{
                 entity_ref: this.task_entity.metadata,
                 status: {
@@ -549,6 +569,9 @@ export class BackgroundTaskBuilder {
 
     // Make all the fields apart from 'task' status-only
     private static modify_task_schema(schema: any) {
+        if (Object.keys(schema).length > 1 && schema["type"] && schema["properties"]) {
+            this.modify_task_schema(schema["properties"])
+        }
         for (let prop in schema) {
             if (schema.hasOwnProperty(prop)) {
                 let nested_prop = schema[prop]
@@ -566,15 +589,15 @@ export class BackgroundTaskBuilder {
         }
     }
 
-    async update_task(status: any) {
+    async update_task(context: any) {
         if (this.task_entity === null) {
             throw new Error(`Attempting to update missing background task (${this.name}) on provider: 
                             ${this.provider.get_prefix()}, ${this.provider.get_version()}`)
         } else {
             await this.update_task_entity()
             await this.provider.provider_api_axios.patch(`${this.provider.provider_url}/${this.provider.get_prefix()}/${this.provider.get_version()}/update_status`,{
-                entity_ref: this.task_entity,
-                status: {provider_fields: status}
+                entity_ref: this.task_entity.metadata,
+                status: {provider_fields: context}
             });
         }
     }
