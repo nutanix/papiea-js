@@ -1,4 +1,4 @@
-import { Entity_Reference, Status, Kind, Differ, Diff, Provider_Entity_Reference } from "papiea-core";
+import { Status, Kind, Differ, Diff, Provider_Entity_Reference } from "papiea-core";
 import { Status_DB } from "../../databases/status_db_interface";
 import { UserAuthInfo } from "../../auth/authn";
 import { Spec_DB } from "../../databases/spec_db_interface";
@@ -38,12 +38,12 @@ export class SpecOnlyUpdateStrategy extends StatusUpdateStrategy {
         super(statusDb)
     }
 
-    async update(entity_ref: Entity_Reference, status: Status): Promise<any> {
-        throw new PapieaException({ message: `Cannot update status for spec-only entity. Verify the entity and entity type.`, entity_info: { kind_name: entity_ref.kind, additional_info: { "entity_uuid": entity_ref.uuid }}})
+    async update(entity_ref: Provider_Entity_Reference, status: Status): Promise<any> {
+        throw new PapieaException({ message: `Cannot update status for spec-only entity. Verify the entity and entity type.`, entity_info: { provider_prefix: entity_ref.provider_prefix, provider_version: entity_ref.provider_version, kind_name: entity_ref.kind, additional_info: { "entity_uuid": entity_ref.uuid }}})
     }
 
-    async replace(entity_ref: Entity_Reference, status: Status): Promise<any> {
-        throw new PapieaException({ message: `Cannot replace status for spec-only entity. Verify the entity and entity type.`, entity_info: { kind_name: entity_ref.kind, additional_info: { "entity_uuid": entity_ref.uuid }}})
+    async replace(entity_ref: Provider_Entity_Reference, status: Status): Promise<any> {
+        throw new PapieaException({ message: `Cannot replace status for spec-only entity. Verify the entity and entity type.`, entity_info: { provider_prefix: entity_ref.provider_prefix, provider_version: entity_ref.provider_version, kind_name: entity_ref.kind, additional_info: { "entity_uuid": entity_ref.uuid }}})
     }
 }
 

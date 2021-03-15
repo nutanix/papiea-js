@@ -55,7 +55,7 @@ export class ConstructorEntityCreationStrategy extends EntityCreationStrategy {
             if (err instanceof ValidationError) {
                 throw new OnActionError({ message: `Entity returned by the custom constructor of kind: ${this.provider.prefix}/${this.provider.version}/${this.kind.name} is not valid. Make sure the return entity is valid.`, entity_info: { provider_prefix: this.provider.prefix, provider_version: this.provider.version, kind_name: this.kind.name, additional_info: { "entity_uuid": entity.metadata.uuid, "procedure_name": `__${this.kind.name}_create` }}, cause: err})
             } else {
-                throw new OnActionError({ message: `Something went wrong in validate entity of kind: ${this.provider.prefix}/${this.provider.version}/${this.kind.name}.`, entity_info: { provider_prefix: this.provider.prefix, provider_version: this.provider.version, kind_name: this.kind.name, additional_info: { "entity_uuid": entity.metadata.uuid, "procedure_name": `__${this.kind.name}_create` }}, cause: err})
+                throw new OnActionError({ message: `Something went wrong while validating entity of kind: ${this.provider.prefix}/${this.provider.version}/${this.kind.name}.`, entity_info: { provider_prefix: this.provider.prefix, provider_version: this.provider.version, kind_name: this.kind.name, additional_info: { "entity_uuid": entity.metadata.uuid, "procedure_name": `__${this.kind.name}_create` }}, cause: err})
             }
         }
         const spec_status_equal = deepEqual(entity.spec, entity.status)
