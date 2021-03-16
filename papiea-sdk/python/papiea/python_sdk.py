@@ -539,7 +539,6 @@ class KindBuilder:
                 result={
                     "IntentfulOutput": {
                         "type": "object",
-                        "nullable": "true",
                         "properties": {
                             "delay_secs": {"type": "integer"}
                         },
